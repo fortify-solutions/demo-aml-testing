@@ -1,4 +1,4 @@
-import type { Rule, BacktestResult, Recommendation } from '../types'
+import type { Rule, BacktestResult, Recommendation, AlertRecord, TransactionRecord, ThresholdComparison, TaxonomyLevel } from '../types'
 
 export const RULES: Rule[] = [
   {
@@ -435,3 +435,136 @@ export const STRATIFIED_DATA: Record<string, { label: string; count: number; met
     { label: 'ATM', count: 351, metrics: { precision: 0.148, recall: 0.672, f1: 0.242, alertVolume: 351, sarHitRate: 0.148, falsePositiveRate: 0.852 } },
   ],
 }
+
+// ---------------------------------------------------------------------------
+// Mock Alert Data
+// ---------------------------------------------------------------------------
+
+const ENTITY_NAMES = [
+  'Jade River Trading Co', 'Marcus Whitfield', 'Solaris Holdings LLC', 'Chen Wei Import/Export',
+  'Brightwater Consulting', 'Fatima Al-Rashid', 'Nordic Freight Solutions', 'Priya Shankar',
+  'Oceancrest Ventures', 'Viktor Petrov', 'Golden Gate Remittance', 'Isabelle Moreau',
+  'Horizon Capital Group', 'Raj Mehta Enterprises', 'Elena Vasquez', 'Alpine Logistics GmbH',
+  'David Okonkwo', 'Pacific Rim Exports', 'Sarah Blackwood', 'Kensington Properties Ltd',
+  'Jun Nakamura', 'Delta Port Services', 'Amira Hassan', 'Summit Financial Corp',
+  'Roberto Fernandez', 'Liberty Exchange Inc', 'Yuki Tanaka', 'CrossBridge Partners',
+  'Mohammed Al-Fayed', 'Sterling Trade Finance', 'Ana Kowalski', 'Meridian Shipping Co',
+]
+
+const COUNTERPARTIES = [
+  'Bank of East Asia', 'HSBC Corporate', 'Wells Fargo Wire', 'Citibank NA',
+  'Standard Chartered', 'Deutsche Bank AG', 'BNP Paribas', 'Barclays PLC',
+  'Cash Counter #12', 'Cash Counter #7', 'ATM Deposit', 'Mobile Deposit',
+  'JP Morgan Chase', 'UBS Group', 'Credit Suisse', 'ANZ Banking',
+]
+
+const TXN_TYPES = ['Cash Deposit', 'Wire Transfer', 'ACH', 'Check', 'Cash Deposit', 'Cash Deposit']
+const CHANNELS = ['Branch', 'Online Banking', 'Mobile', 'ATM']
+const COUNTRIES = ['United States', 'United Kingdom', 'Singapore', 'Hong Kong', 'Germany']
+const CUSTOMER_TYPES = ['Retail Individual', 'SME', 'Corporate', 'Private Banking']
+
+function seededRandom(seed: number) {
+  let s = seed
+  return () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647 }
+}
+
+function generateMockAlerts(rule: Rule, count: number): AlertRecord[] {
+  const rand = seededRandom(42)
+  const pick = <T>(arr: T[]) => arr[Math.floor(rand() * arr.length)]
+  const alerts: AlertRecord[] = []
+
+  const startDate = new Date('2025-07-01')
+  const endDate = new Date('2025-09-28')
+  const dateRange = endDate.getTime() - startDate.getTime()
+  const thresholdParams = rule.parameters.filter(p => p.type === 'threshold')
+
+  for (let i = 0; i < count; i++) {
+    const entityIdx = Math.floor(rand() * ENTITY_NAMES.length)
+    const entityId = `ENT-${String(100000 + entityIdx * 317 + i).slice(-6)}`
+    const entityName = ENTITY_NAMES[entityIdx]
+
+    const alertTime = new Date(startDate.getTime() + rand() * dateRange)
+    const alertDate = alertTime.toISOString().split('T')[0]
+    const windowStart = new Date(alertTime.getTime() - rule.lookbackWindowHours * 3600000)
+    const windowEnd = alertTime
+
+    const isSar = rand() < 0.14
+    const isInferred = !isSar && rand() < 0.09
+    const txnCount = Math.round(8 + rand() * 12)
+    const totalAmount = Math.round((5000 + rand() * 40000) * 100) / 100
+    const score = Math.round((isSar ? 55 + rand() * 40 : 25 + rand() * 55) * 10) / 10
+
+    // Marginal flags — probability increases at narrower scopes
+    const marginalAtLevel: TaxonomyLevel[] = []
+    const marginalRoll = rand()
+    if (marginalRoll < 0.62) marginalAtLevel.push('l3')
+    if (marginalRoll < 0.44) marginalAtLevel.push('l2')
+    if (marginalRoll < 0.25) marginalAtLevel.push('l1')
+    if (marginalRoll < 0.17) marginalAtLevel.push('global')
+
+    // Threshold comparisons
+    const comparisons: ThresholdComparison[] = thresholdParams.map(p => {
+      const threshold = typeof p.currentValue === 'number' ? p.currentValue : 0
+      let actual: number
+      if (p.id === 'p1') actual = txnCount
+      else if (p.id === 'p2') actual = Math.round((threshold * (1.0 + rand() * 2.5)) * 100) / 100
+      else actual = Math.round(threshold * (1.1 + rand() * 1.8) * 100) / 100
+      return {
+        parameterId: p.id,
+        parameterName: p.name,
+        threshold: p.currentValue,
+        actualValue: actual,
+        unit: p.unit,
+        exceeded: typeof actual === 'number' && typeof threshold === 'number' ? actual >= threshold : true,
+      }
+    })
+
+    // Generate nested transactions
+    const numTxns = 5 + Math.floor(rand() * 14)
+    const transactions: TransactionRecord[] = []
+    let remainingAmount = totalAmount
+    for (let t = 0; t < numTxns; t++) {
+      const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+      const isLast = t === numTxns - 1
+      const txnAmount = isLast ? Math.round(remainingAmount * 100) / 100 : Math.round((remainingAmount / (numTxns - t)) * (0.3 + rand() * 1.4) * 100) / 100
+      remainingAmount = Math.max(0, remainingAmount - txnAmount)
+
+      transactions.push({
+        id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+        date: txnTime.toISOString().split('T')[0],
+        amount: Math.max(100, txnAmount),
+        currency: 'USD',
+        type: pick(TXN_TYPES),
+        counterparty: pick(COUNTERPARTIES),
+        channel: pick(CHANNELS),
+        passedFilters: rand() > 0.15,
+      })
+    }
+    transactions.sort((a, b) => b.date.localeCompare(a.date))
+
+    alerts.push({
+      id: `ALT-${String(i + 1).padStart(5, '0')}`,
+      entityId,
+      entityName,
+      alertDate,
+      aggregationWindowStart: windowStart.toISOString().split('T')[0],
+      aggregationWindowEnd: windowEnd.toISOString().split('T')[0],
+      totalAmount,
+      transactionCount: txnCount,
+      alertScore: score,
+      sarFiled: isSar,
+      inferredSar: isInferred,
+      country: pick(COUNTRIES),
+      customerType: pick(CUSTOMER_TYPES),
+      channel: pick(CHANNELS),
+      isMarginal: marginalAtLevel.length > 0,
+      marginalAtLevel,
+      thresholdComparisons: comparisons,
+      transactions,
+    })
+  }
+
+  return alerts.sort((a, b) => b.alertDate.localeCompare(a.alertDate))
+}
+
+export const MOCK_ALERTS: AlertRecord[] = generateMockAlerts(RULES[0], 96)

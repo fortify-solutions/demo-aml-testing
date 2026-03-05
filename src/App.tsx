@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Rule, UnitOfAnalysis, GroundTruth, ExecutionFidelity, TaxonomyLevel, BacktestResult, Recommendation, PerformanceView, LabelConfidence } from './types'
-import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS } from './data/mockData'
+import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS, MOCK_ALERTS } from './data/mockData'
 import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/computeResults'
 import { ConfigPanel } from './components/ConfigPanel'
 import { ResultsToolbar } from './components/ResultsToolbar'
@@ -10,6 +10,7 @@ import { AbsolutePerformance } from './components/AbsolutePerformance'
 import { MarginalPerformance } from './components/MarginalPerformance'
 import { PerformanceDataTable } from './components/PerformanceDataTable'
 import { VolumeChart } from './components/VolumeChart'
+import { AlertExplorer } from './components/AlertExplorer'
 import { ATLBTLAnalysis } from './components/ATLBTLAnalysis'
 import { RecommendationsPanel } from './components/RecommendationsPanel'
 
@@ -220,6 +221,14 @@ export default function App() {
                     selectedLevel={taxonomyLevel}
                     levelLabel={taxonomyLevel === 'global' ? 'Global' : selectedRule!.taxonomy[taxonomyLevel as 'l1' | 'l2' | 'l3']}
                     labelMode={labelMode}
+                  />
+
+                  <AlertExplorer
+                    alerts={MOCK_ALERTS}
+                    performanceView={performanceView}
+                    taxonomyLevel={taxonomyLevel}
+                    rule={selectedRule!}
+                    unitOfAnalysis={unitOfAnalysis}
                   />
 
                   <ATLBTLAnalysis

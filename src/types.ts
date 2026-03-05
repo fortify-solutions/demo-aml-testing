@@ -91,3 +91,44 @@ export interface StratifiedMetrics {
     metrics: PerformanceMetrics
   }[]
 }
+
+export interface AlertRecord {
+  id: string
+  entityId: string
+  entityName: string
+  alertDate: string
+  aggregationWindowStart: string
+  aggregationWindowEnd: string
+  totalAmount: number
+  transactionCount: number
+  alertScore: number
+  sarFiled: boolean
+  inferredSar: boolean
+  country: string
+  customerType: string
+  channel: string
+  isMarginal: boolean
+  marginalAtLevel: TaxonomyLevel[]
+  thresholdComparisons: ThresholdComparison[]
+  transactions: TransactionRecord[]
+}
+
+export interface TransactionRecord {
+  id: string
+  date: string
+  amount: number
+  currency: string
+  type: string
+  counterparty: string
+  channel: string
+  passedFilters: boolean
+}
+
+export interface ThresholdComparison {
+  parameterId: string
+  parameterName: string
+  threshold: number | string
+  actualValue: number | string
+  unit?: string
+  exceeded: boolean
+}
