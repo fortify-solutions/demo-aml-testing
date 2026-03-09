@@ -42,7 +42,7 @@ Scrolling down through the main content area:
 - **Marginal Performance** — same metrics showing what this rule *uniquely contributes* relative to its peer group. Use the taxonomy toggle (L1 / L2 / L3 / Global) to change scope. Delta rows show improvement (green) or regression (red).
 - **Performance Data Table** — stratified breakdown by country, customer type, product, and channel.
 - **Alert Volume** — area chart of alerts, formal SARs, and inferred SARs over time (marginal view only).
-- **Alert Explorer** — expandable table of individual alerts. Expand any alert to see its transactions with rule-specific running state columns:
+- **Alert Explorer** — expandable table of individual alerts. The SAR column shows only confirmed filings (inferred labels are excluded as they are probabilistic). Expand any alert to see its transactions with rule-specific running state columns:
   - *High Velocity Cash Deposits*: ≥ Floor, In Scope, Velocity count
   - *Rapid Cross-Border Transfers*: New Beneficiary, Distinct count
   - *Dormant Account Reactivation*: Day offset, ≥ Threshold, Cumulative $

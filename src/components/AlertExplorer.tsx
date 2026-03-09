@@ -252,10 +252,6 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
             <span className="inline-flex items-center gap-1 text-red-600">
               <CheckCircle2 className="w-3.5 h-3.5" /> Filed
             </span>
-          ) : alert.inferredSar ? (
-            <span className="inline-flex items-center gap-1 text-amber-500">
-              <AlertTriangle className="w-3 h-3" /> Inferred
-            </span>
           ) : (
             <span className="text-gray-500">-</span>
           )}
