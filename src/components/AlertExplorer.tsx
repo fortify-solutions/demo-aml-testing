@@ -10,7 +10,7 @@ interface Props {
   rule: Rule
 }
 
-type SortKey = 'entityId' | 'entityName' | 'alertDate' | 'transactionCount' | 'totalAmount' | 'alertScore' | 'sarFiled'
+type SortKey = 'entityId' | 'entityName' | 'alertDate' | 'transactionCount' | 'totalAmount' | 'sarFiled'
 type SortDir = 'asc' | 'desc'
 
 const PAGE_SIZE = 20
@@ -58,7 +58,6 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
         case 'alertDate': cmp = a.alertDate.localeCompare(b.alertDate); break
         case 'transactionCount': cmp = a.transactionCount - b.transactionCount; break
         case 'totalAmount': cmp = a.totalAmount - b.totalAmount; break
-        case 'alertScore': cmp = a.alertScore - b.alertScore; break
         case 'sarFiled': cmp = (a.sarFiled ? 1 : 0) - (b.sarFiled ? 1 : 0); break
       }
       return sortDir === 'asc' ? cmp : -cmp
@@ -147,7 +146,6 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
                         ['alertDate', 'Date'],
                         ['transactionCount', 'Txns'],
                         ['totalAmount', 'Amount'],
-                        ['alertScore', 'Score'],
                         ['sarFiled', 'SAR'],
                       ] as [SortKey, string][]).map(([key, label]) => (
                         <th
@@ -177,7 +175,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
                     ))}
                     {paginated.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-[12px]">
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-[12px]">
                           No alerts match the current filters.
                         </td>
                       </tr>
@@ -243,11 +241,6 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
         <td className="px-3 py-2 text-gray-600">{alert.transactionCount}</td>
         <td className="px-3 py-2 text-gray-600">{formatCurrency(alert.totalAmount)}</td>
         <td className="px-3 py-2">
-          <span className="inline-flex items-center justify-center w-8 text-center font-mono text-gray-600">
-            {alert.alertScore.toFixed(1)}
-          </span>
-        </td>
-        <td className="px-3 py-2">
           {alert.sarFiled ? (
             <span className="inline-flex items-center gap-1 text-red-600">
               <CheckCircle2 className="w-3.5 h-3.5" /> Filed
@@ -262,7 +255,7 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
       <AnimatePresence>
         {isExpanded && (
           <tr>
-            <td colSpan={8} className="p-0">
+            <td colSpan={7} className="p-0">
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -550,9 +543,10 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
         <RuleSummaryBadge rule={rule} />
       </div>
       <div className="border border-(--color-border) rounded-lg overflow-hidden bg-white">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-[11px] border-collapse">
           <thead>
             <tr className="bg-gray-50/80">
+              <th className="w-1" />
               <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Date</th>
               <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Type</th>
               <th className="px-2.5 py-1.5 text-right font-semibold text-gray-500">Amount</th>
@@ -563,17 +557,20 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
             {enrichedTxns.map((txn, i) => {
               const isTriggerRow = i === triggerIdx
               const isPastTrigger = triggerIdx >= 0 && i > triggerIdx
+              const isAlerted = isTriggerRow || isPastTrigger
 
               return (
                 <tr
                   key={txn.id}
                   className={[
                     'border-t border-gray-100 transition-colors',
-                    !txn.passedFilters ? 'opacity-40 line-through decoration-gray-300' : '',
-                    isTriggerRow ? 'bg-[#00A99D]/[0.08] border-l-2 border-l-[#00A99D]' : '',
-                    isPastTrigger ? 'bg-[#00A99D]/[0.03]' : '',
+                    !txn.passedFilters ? 'opacity-40' : '',
+                    isTriggerRow ? 'bg-[#00A99D]/[0.10]' : '',
+                    isPastTrigger ? 'bg-[#00A99D]/[0.05]' : '',
                   ].join(' ')}
                 >
+                  {/* Alert indicator bar */}
+                  <td className={`w-1 p-0 ${isAlerted ? 'bg-[#00A99D]' : ''}`} />
                   <td className="px-2.5 py-1.5 text-gray-500">{formatDate(txn.date)}</td>
                   <td className="px-2.5 py-1.5 text-gray-600">{txn.type}</td>
                   <td className="px-2.5 py-1.5 text-right font-mono text-gray-600">
@@ -585,6 +582,21 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
             })}
           </tbody>
         </table>
+      </div>
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-2">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#00A99D]" />
+          <span className="text-[10px] text-gray-500">Alerted (rule triggered)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-gray-200" />
+          <span className="text-[10px] text-gray-500">Pre-trigger</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-gray-200 opacity-40" />
+          <span className="text-[10px] text-gray-500">Filtered out</span>
+        </div>
       </div>
     </div>
   )
