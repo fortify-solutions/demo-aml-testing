@@ -58,7 +58,7 @@ function InlineProportionBar({ baseline, marginal, isRate, invertColor }: { base
       <div className="h-1.5 rounded-full overflow-hidden bg-black/[0.06] flex">
         <div
           className="h-full rounded-l-full"
-          style={{ width: `${baselinePct}%`, backgroundColor: '#6366f1', opacity: 0.35 }}
+          style={{ width: `${baselinePct}%`, backgroundColor: '#00A99D', opacity: 0.35 }}
         />
         <div
           className="h-full rounded-r-full"

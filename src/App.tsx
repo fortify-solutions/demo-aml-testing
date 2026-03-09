@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { Rule, UnitOfAnalysis, GroundTruth, ExecutionFidelity, TaxonomyLevel, BacktestResult, Recommendation, PerformanceView, LabelConfidence } from './types'
-import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS, MOCK_ALERTS } from './data/mockData'
+import type { Rule, UnitOfAnalysis, GroundTruth, TaxonomyLevel, BacktestResult, Recommendation, PerformanceView, LabelConfidence } from './types'
+import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE } from './data/mockData'
 import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/computeResults'
 import { ConfigPanel } from './components/ConfigPanel'
 import { ResultsToolbar } from './components/ResultsToolbar'
@@ -25,8 +25,6 @@ export default function App() {
   const [selectedRule, setSelectedRule] = useState<Rule | null>(null)
   const [dateFrom, setDateFrom] = useState('2025-07-01')
   const [dateTo, setDateTo] = useState('2025-09-28')
-  const [suppressionIncluded, setSuppressionIncluded] = useState(false)
-  const [executionFidelity, setExecutionFidelity] = useState<ExecutionFidelity>('simplified')
 
   // Results state
   const [runState, setRunState] = useState<RunState>('empty')
@@ -57,11 +55,11 @@ export default function App() {
       setRunState('results')
 
       setTimeout(() => {
-        setRecs(RECOMMENDATIONS)
+        setRecs(RECOMMENDATIONS_BY_RULE[selectedRule?.id ?? ''] ?? [])
         setRecsLoading(false)
       }, 1800)
     }, 1500)
-  }, [])
+  }, [selectedRule])
 
   const handleApplyRecommendation = useCallback((rec: Recommendation) => {
     console.log('Apply recommendation:', rec.id, rec)
@@ -84,37 +82,20 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-(--color-bg)">
-      {/* Page Header */}
-      <header className="h-12 flex items-center px-6 border-b border-(--color-border) shrink-0">
-        <span className="text-[13px] text-gray-500">Rule Testing</span>
-        {selectedRule && (
-          <>
-            <span className="text-[13px] text-gray-300 mx-2">/</span>
-            <span className="text-[13px] text-gray-400">{selectedRule.name}</span>
-          </>
-        )}
-      </header>
+      {/* Top Config Bar */}
+      <ConfigPanel
+        selectedRule={selectedRule}
+        onSelectRule={setSelectedRule}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        onRunBacktest={handleRunBacktest}
+        isRunning={runState === 'loading'}
+      />
 
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Config Panel */}
-        <ConfigPanel
-          selectedRule={selectedRule}
-          onSelectRule={setSelectedRule}
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-          suppressionIncluded={suppressionIncluded}
-          onSuppressionChange={setSuppressionIncluded}
-          executionFidelity={executionFidelity}
-          onFidelityChange={setExecutionFidelity}
-          onRunBacktest={handleRunBacktest}
-          isRunning={runState === 'loading'}
-        />
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-[1400px] mx-auto space-y-6">
             <AnimatePresence mode="wait">
               {runState === 'empty' && (
@@ -216,15 +197,17 @@ export default function App() {
                   {/* Performance Data Table with stratification */}
                   <PerformanceDataTable data={stratifiedData} />
 
-                  <VolumeChart
-                    data={activeResult.volumeOverTime}
-                    selectedLevel={taxonomyLevel}
-                    levelLabel={taxonomyLevel === 'global' ? 'Global' : selectedRule!.taxonomy[taxonomyLevel as 'l1' | 'l2' | 'l3']}
-                    labelMode={labelMode}
-                  />
+                  {performanceView === 'marginal' && (
+                    <VolumeChart
+                      data={activeResult.volumeOverTime}
+                      selectedLevel={taxonomyLevel}
+                      levelLabel={taxonomyLevel === 'global' ? 'Global' : selectedRule!.taxonomy[taxonomyLevel as 'l1' | 'l2' | 'l3']}
+                      labelMode={labelMode}
+                    />
+                  )}
 
                   <AlertExplorer
-                    alerts={MOCK_ALERTS}
+                    alerts={MOCK_ALERTS_BY_RULE[selectedRule!.id] ?? []}
                     performanceView={performanceView}
                     taxonomyLevel={taxonomyLevel}
                     rule={selectedRule!}
@@ -248,8 +231,7 @@ export default function App() {
               )}
             </AnimatePresence>
           </div>
-        </main>
-      </div>
+      </main>
     </div>
   )
 }

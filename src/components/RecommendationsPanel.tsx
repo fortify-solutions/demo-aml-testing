@@ -137,38 +137,63 @@ function RecommendationCard({ rec, onHover, onApply }: {
 }
 
 export function RecommendationsPanel({ recommendations, loading, onHoverRecommendation, onApply }: Props) {
+  const [sectionExpanded, setSectionExpanded] = useState(false)
+
   return (
-    <div className="rounded-xl border border-(--color-border-strong) bg-white p-5 stage-glow-violet">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-(--color-border-strong) bg-white overflow-hidden stage-glow-violet">
+      <button
+        onClick={() => setSectionExpanded(!sectionExpanded)}
+        className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
+      >
         <Sparkles className="w-3.5 h-3.5 text-violet-500/70" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Recommendations
         </span>
         {loading && <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin" />}
-      </div>
+        {!loading && recommendations.length > 0 && (
+          <span className="text-[10px] text-gray-400 ml-1">
+            {recommendations.length} suggestion{recommendations.length !== 1 ? 's' : ''}
+          </span>
+        )}
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${sectionExpanded ? 'rotate-180' : ''}`} />
+      </button>
 
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl bg-black/[0.03] animate-pulse h-[160px]" />
-          ))}
-        </div>
-      ) : recommendations.length === 0 ? (
-        <div className="text-center py-12 text-[13px] text-gray-300">
-          No recommendations — rule performance looks good across all dimensions.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {recommendations.map(rec => (
-            <RecommendationCard
-              key={rec.id}
-              rec={rec}
-              onHover={onHoverRecommendation}
-              onApply={onApply}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {sectionExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5">
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="rounded-xl bg-black/[0.03] animate-pulse h-[160px]" />
+                  ))}
+                </div>
+              ) : recommendations.length === 0 ? (
+                <div className="text-center py-12 text-[13px] text-gray-300">
+                  No recommendations — rule performance looks good across all dimensions.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recommendations.map(rec => (
+                    <RecommendationCard
+                      key={rec.id}
+                      rec={rec}
+                      onHover={onHoverRecommendation}
+                      onApply={onApply}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

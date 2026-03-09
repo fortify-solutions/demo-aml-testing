@@ -1,4 +1,4 @@
-import type { PerformanceMetrics, BacktestResult, PopulationSegment, GroundTruth, UnitOfAnalysis, LabelConfidence, TaxonomyLevel } from '../types'
+import type { PerformanceMetrics, PerformanceMetricsCI, BacktestResult, PopulationSegment, GroundTruth, UnitOfAnalysis, LabelConfidence, TaxonomyLevel } from '../types'
 import { STRATIFIED_DATA } from './mockData'
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,49 @@ function clamp(v: number, min: number, max: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Bayesian credible intervals — width scales with inferred label proportion
+// ---------------------------------------------------------------------------
+
+/** Base half-widths for 90% credible interval (at 100% inferred). Scaled by inferred ratio. */
+const BASE_CI_HALF_WIDTH: Record<keyof PerformanceMetricsCI, number> = {
+  precision: 0.065,
+  recall: 0.085,
+  f1: 0.075,
+  alertVolume: 0.12,       // as a fraction of the value
+  sarHitRate: 0.070,
+  falsePositiveRate: 0.070,
+}
+
+/** Slight asymmetry factor — posteriors skew slightly toward higher uncertainty */
+const SKEW = 0.15
+
+function computeCI(metrics: PerformanceMetrics, inferredRatio: number): PerformanceMetricsCI {
+  const ci = {} as PerformanceMetricsCI
+  const keys: (keyof PerformanceMetricsCI)[] = ['precision', 'recall', 'f1', 'alertVolume', 'sarHitRate', 'falsePositiveRate']
+
+  for (const key of keys) {
+    const val = metrics[key]
+    const baseHalf = BASE_CI_HALF_WIDTH[key]
+    // CI width scales with sqrt of inferred ratio (Bayesian posterior narrowing)
+    const halfWidth = baseHalf * Math.sqrt(inferredRatio)
+
+    if (key === 'alertVolume') {
+      // For volume, CI is relative to the value
+      const low = Math.max(0, Math.round(val * (1 - halfWidth * (1 - SKEW))))
+      const high = Math.round(val * (1 + halfWidth * (1 + SKEW)))
+      ci[key] = [low, high]
+    } else {
+      // For rates, CI is absolute
+      const low = clamp(val - halfWidth * (1 - SKEW), 0, 1)
+      const high = clamp(val + halfWidth * (1 + SKEW), 0, 1)
+      ci[key] = [low, high]
+    }
+  }
+
+  return ci
+}
+
+// ---------------------------------------------------------------------------
 // Public: compute a fully adjusted BacktestResult
 // ---------------------------------------------------------------------------
 
@@ -67,12 +110,21 @@ export function computeAdjustedResult(
 
   const absolute = adjustMetrics(base.absolute, gt, unit, labelAdj)
 
+  // Attach credible intervals when inferred labels are included
+  const inferredRatio = labelConfidence === 'formal_inferred' ? (1 - lc.formalRatio) : 0
+  if (inferredRatio > 0) {
+    absolute.ci = computeCI(absolute, inferredRatio)
+  }
+
   // Marginal levels
   const marginal = {} as Record<TaxonomyLevel, PerformanceMetrics>
   const marginalBaseline = {} as Record<TaxonomyLevel, PerformanceMetrics>
   for (const level of ['l1', 'l2', 'l3', 'global'] as TaxonomyLevel[]) {
     marginal[level] = adjustMetrics(base.marginal[level], gt, unit, labelAdj)
     marginalBaseline[level] = adjustMetrics(base.marginalBaseline[level], gt, unit, labelAdj)
+    if (inferredRatio > 0) {
+      marginal[level].ci = computeCI(marginal[level], inferredRatio)
+    }
   }
 
   // ATL / BTL

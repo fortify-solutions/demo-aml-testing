@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch } from 'lucide-react'
-import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, UnitOfAnalysis } from '../types'
+import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react'
+import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, UnitOfAnalysis, TransactionRecord } from '../types'
 
 interface Props {
   alerts: AlertRecord[]
@@ -278,7 +278,7 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
                 <div className="px-5 py-4 bg-gray-50/50 border-t border-(--color-border)">
                   <div className="grid grid-cols-[3fr_2fr] gap-6">
                     {/* Left: Transactions */}
-                    <TransactionsPanel alert={alert} />
+                    <TransactionsPanel alert={alert} rule={rule} />
                     {/* Right: Why This Alert */}
                     <WhyThisAlertPanel alert={alert} rule={rule} />
                   </div>
@@ -296,9 +296,176 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
 // Transactions Panel
 // ---------------------------------------------------------------------------
 
-function TransactionsPanel({ alert }: { alert: AlertRecord }) {
+// ---------------------------------------------------------------------------
+// Enriched transaction types per rule
+// ---------------------------------------------------------------------------
+
+interface EnrichedBase extends TransactionRecord {
+  triggered: boolean
+  triggerIdx: number // -1 if not yet determined
+}
+
+interface VelocityEnriched extends EnrichedBase {
+  _rule: 'velocity'
+  meetsFloor: boolean
+  qualifies: boolean
+  runningCount: number
+  velocityThreshold: number
+}
+
+interface StructuringEnriched extends EnrichedBase {
+  _rule: 'structuring'
+  nearLimit: boolean
+  nearPct: number
+  nearCount: number
+  cumulativeAmount: number
+  countTrigger: number
+  reportingThreshold: number
+}
+
+interface RapidMovementEnriched extends EnrichedBase {
+  _rule: 'rapid-movement'
+  cumulIn: number
+  cumulOut: number
+  ratio: number
+  ratioThreshold: number
+  minInflow: number
+  ratioTriggered: boolean
+}
+
+interface EscalatingEnriched extends EnrichedBase {
+  _rule: 'escalating'
+  qualifies: boolean
+  rollingAvg: number | null
+  priorAvg: number | null
+  growth: number | null
+  growthThreshold: number
+  minTxns: number
+  qualifyingCount: number
+}
+
+type EnrichedTxn = VelocityEnriched | StructuringEnriched | RapidMovementEnriched | EscalatingEnriched
+
+function getParam(rule: Rule, id: string): number {
+  const p = rule.parameters.find(p => p.id === id)
+  return typeof p?.currentValue === 'number' ? p.currentValue : 0
+}
+
+function enrichTransactions(alert: AlertRecord, rule: Rule): { txns: EnrichedTxn[]; triggerIdx: number } {
+  const sorted = [...alert.transactions].sort((a, b) => a.date.localeCompare(b.date))
+
+  switch (rule.id) {
+    case 'rule-001': {
+      const amountFloor = getParam(rule, 'p2')
+      const velocityThreshold = getParam(rule, 'p1')
+      let count = 0
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const meetsFloor = txn.amount >= amountFloor
+        const qualifies = txn.passedFilters && meetsFloor
+        if (qualifies) count++
+        if (trigger === -1 && count >= velocityThreshold) trigger = i
+        return { ...txn, _rule: 'velocity' as const, meetsFloor, qualifies, runningCount: count, velocityThreshold, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-005': {
+      const reportingThreshold = getParam(rule, 'p10')
+      const nearPctParam = getParam(rule, 'p11')
+      const countTrigger = getParam(rule, 'p12')
+      const nearFloor = reportingThreshold * nearPctParam
+      let nearCount = 0
+      let cumulativeAmount = 0
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const nearLimit = txn.passedFilters && txn.amount >= nearFloor && txn.amount < reportingThreshold
+        const nearPct = txn.amount / reportingThreshold
+        if (txn.passedFilters) cumulativeAmount += txn.amount
+        if (nearLimit) nearCount++
+        if (trigger === -1 && nearCount >= countTrigger) trigger = i
+        return { ...txn, _rule: 'structuring' as const, nearLimit, nearPct, nearCount, cumulativeAmount, countTrigger, reportingThreshold, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-006': {
+      const ratioThreshold = getParam(rule, 'p13')
+      const minInflow = getParam(rule, 'p14')
+      let cumulIn = 0
+      let cumulOut = 0
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        if (txn.passedFilters) {
+          if (txn.direction === 'inflow') cumulIn += txn.amount
+          else if (txn.direction === 'outflow') cumulOut += txn.amount
+        }
+        const ratio = cumulIn > 0 ? cumulOut / cumulIn : 0
+        const ratioTriggered = ratio >= ratioThreshold && cumulIn >= minInflow
+        if (trigger === -1 && ratioTriggered) trigger = i
+        return { ...txn, _rule: 'rapid-movement' as const, cumulIn, cumulOut, ratio, ratioThreshold, minInflow, ratioTriggered, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-007': {
+      const growthThreshold = getParam(rule, 'p15')
+      const minTxns = getParam(rule, 'p16')
+      const baseAmount = getParam(rule, 'p17')
+      const qualifyingAmounts: number[] = []
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const qualifies = txn.passedFilters && txn.amount >= baseAmount
+        if (qualifies) qualifyingAmounts.push(txn.amount)
+        const qCount = qualifyingAmounts.length
+        let rollingAvg: number | null = null
+        let priorAvg: number | null = null
+        let growth: number | null = null
+        if (qCount >= 6) {
+          const half = Math.floor(qCount / 2)
+          const recent = qualifyingAmounts.slice(half)
+          const prior = qualifyingAmounts.slice(0, half)
+          rollingAvg = recent.reduce((a, b) => a + b, 0) / recent.length
+          priorAvg = prior.reduce((a, b) => a + b, 0) / prior.length
+          growth = priorAvg > 0 ? rollingAvg / priorAvg : null
+        } else if (qCount >= 3) {
+          const recent = qualifyingAmounts.slice(-3)
+          rollingAvg = recent.reduce((a, b) => a + b, 0) / recent.length
+          if (qCount >= 4) {
+            const prior = qualifyingAmounts.slice(0, -3)
+            priorAvg = prior.reduce((a, b) => a + b, 0) / prior.length
+            growth = priorAvg > 0 ? rollingAvg / priorAvg : null
+          }
+        }
+        if (trigger === -1 && growth !== null && growth >= growthThreshold && qCount >= minTxns) trigger = i
+        return { ...txn, _rule: 'escalating' as const, qualifies, rollingAvg, priorAvg, growth, growthThreshold, minTxns, qualifyingCount: qCount, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    default: {
+      // Fallback: just show basic columns
+      const txns: EnrichedTxn[] = sorted.map(txn => ({
+        ...txn, _rule: 'velocity' as const, meetsFloor: true, qualifies: txn.passedFilters,
+        runningCount: 0, velocityThreshold: 0, triggered: false, triggerIdx: -1,
+      }))
+      return { txns, triggerIdx: -1 }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TransactionsPanel — rule-aware
+// ---------------------------------------------------------------------------
+
+function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) {
   const inScope = alert.transactions.filter(t => t.passedFilters).length
   const outScope = alert.transactions.length - inScope
+
+  const { txns: enrichedTxns, triggerIdx } = useMemo(
+    () => enrichTransactions(alert, rule),
+    [alert, rule]
+  )
 
   return (
     <div>
@@ -317,6 +484,7 @@ function TransactionsPanel({ alert }: { alert: AlertRecord }) {
         <span className="text-[10px] text-gray-400">
           <span className="font-semibold text-gray-500">{outScope}</span> filtered out
         </span>
+        <RuleSummaryBadge rule={rule} />
       </div>
       <div className="border border-(--color-border) rounded-lg overflow-hidden bg-white">
         <table className="w-full text-[11px]">
@@ -325,38 +493,213 @@ function TransactionsPanel({ alert }: { alert: AlertRecord }) {
               <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Date</th>
               <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Type</th>
               <th className="px-2.5 py-1.5 text-right font-semibold text-gray-500">Amount</th>
-              <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Counterparty</th>
-              <th className="px-2.5 py-1.5 text-left font-semibold text-gray-500">Channel</th>
-              <th className="px-2.5 py-1.5 text-center font-semibold text-gray-500">In Scope</th>
+              <RuleColumnHeaders ruleId={rule.id} />
             </tr>
           </thead>
           <tbody>
-            {alert.transactions.map(txn => (
-              <tr
-                key={txn.id}
-                className={`border-t border-gray-100 ${!txn.passedFilters ? 'opacity-40 line-through decoration-gray-300' : ''}`}
-              >
-                <td className="px-2.5 py-1.5 text-gray-500">{formatDate(txn.date)}</td>
-                <td className="px-2.5 py-1.5 text-gray-600">{txn.type}</td>
-                <td className="px-2.5 py-1.5 text-right font-mono text-gray-600">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency, maximumFractionDigits: 0 }).format(txn.amount)}
-                </td>
-                <td className="px-2.5 py-1.5 text-gray-500 truncate max-w-[120px]">{txn.counterparty}</td>
-                <td className="px-2.5 py-1.5 text-gray-500">{txn.channel}</td>
-                <td className="px-2.5 py-1.5 text-center">
-                  {txn.passedFilters ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" />
-                  ) : (
-                    <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />
-                  )}
-                </td>
-              </tr>
-            ))}
+            {enrichedTxns.map((txn, i) => {
+              const isTriggerRow = i === triggerIdx
+              const isPastTrigger = triggerIdx >= 0 && i > triggerIdx
+
+              return (
+                <tr
+                  key={txn.id}
+                  className={[
+                    'border-t border-gray-100 transition-colors',
+                    !txn.passedFilters ? 'opacity-40 line-through decoration-gray-300' : '',
+                    isTriggerRow ? 'bg-[#00A99D]/[0.08] border-l-2 border-l-[#00A99D]' : '',
+                    isPastTrigger ? 'bg-[#00A99D]/[0.03]' : '',
+                  ].join(' ')}
+                >
+                  <td className="px-2.5 py-1.5 text-gray-500">{formatDate(txn.date)}</td>
+                  <td className="px-2.5 py-1.5 text-gray-600">{txn.type}</td>
+                  <td className="px-2.5 py-1.5 text-right font-mono text-gray-600">
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency, maximumFractionDigits: 0 }).format(txn.amount)}
+                  </td>
+                  <RuleStateCells txn={txn} isTriggerRow={isTriggerRow} isPastTrigger={isPastTrigger} />
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
     </div>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Rule-specific header & cell renderers
+// ---------------------------------------------------------------------------
+
+function RuleSummaryBadge({ rule }: { rule: Rule }) {
+  switch (rule.id) {
+    case 'rule-001':
+      return (
+        <span className="text-[10px] text-gray-400 ml-auto">
+          Floor: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p2'))}</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Velocity: <span className="font-semibold text-gray-600">{getParam(rule, 'p1')} txns</span>
+        </span>
+      )
+    case 'rule-005':
+      return (
+        <span className="text-[10px] text-gray-400 ml-auto">
+          CTR Limit: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p10'))}</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Near: <span className="font-semibold text-gray-600">&ge;{(getParam(rule, 'p11') * 100).toFixed(0)}%</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Trigger: <span className="font-semibold text-gray-600">{getParam(rule, 'p12')} txns</span>
+        </span>
+      )
+    case 'rule-006':
+      return (
+        <span className="text-[10px] text-gray-400 ml-auto">
+          Ratio: <span className="font-semibold text-gray-600">&ge;{(getParam(rule, 'p13') * 100).toFixed(0)}%</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Min Inflow: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p14'))}</span>
+        </span>
+      )
+    case 'rule-007':
+      return (
+        <span className="text-[10px] text-gray-400 ml-auto">
+          Growth: <span className="font-semibold text-gray-600">&ge;{getParam(rule, 'p15')}&times;</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Min Txns: <span className="font-semibold text-gray-600">{getParam(rule, 'p16')}</span>
+          <span className="mx-1.5 text-gray-300">|</span>
+          Floor: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p17'))}</span>
+        </span>
+      )
+    default:
+      return null
+  }
+}
+
+function RuleColumnHeaders({ ruleId }: { ruleId: string }) {
+  const th = "px-2.5 py-1.5 font-semibold text-gray-500"
+  switch (ruleId) {
+    case 'rule-001':
+      return (<>
+        <th className={`${th} text-center`}>&ge; Floor</th>
+        <th className={`${th} text-center`}>In Scope</th>
+        <th className={`${th} text-right`}>Velocity</th>
+      </>)
+    case 'rule-005':
+      return (<>
+        <th className={`${th} text-center`}>Near Limit</th>
+        <th className={`${th} text-right`}>Count</th>
+        <th className={`${th} text-right`}>Cumul. $</th>
+      </>)
+    case 'rule-006':
+      return (<>
+        <th className={`${th} text-center`}>Dir</th>
+        <th className={`${th} text-right`}>Cumul. In</th>
+        <th className={`${th} text-right`}>Cumul. Out</th>
+        <th className={`${th} text-right`}>Out/In</th>
+      </>)
+    case 'rule-007':
+      return (<>
+        <th className={`${th} text-center`}>Qualifies</th>
+        <th className={`${th} text-right`}>Rolling Avg</th>
+        <th className={`${th} text-right`}>Prior Avg</th>
+        <th className={`${th} text-right`}>Growth</th>
+      </>)
+    default:
+      return <th className={`${th} text-center`}>In Scope</th>
+  }
+}
+
+function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn; isTriggerRow: boolean; isPastTrigger: boolean }) {
+  const isAtOrPast = isTriggerRow || isPastTrigger
+  const accent = isAtOrPast ? 'text-[#00A99D] font-semibold' : 'text-gray-500'
+
+  switch (txn._rule) {
+    case 'velocity':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.meetsFloor ? <DollarSign className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.passedFilters ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          {txn.qualifies ? (
+            <span className={`font-mono text-[11px] ${accent}`}>
+              {txn.runningCount}<span className="text-gray-300 mx-0.5">/</span><span className="text-gray-400">{txn.velocityThreshold}</span>
+            </span>
+          ) : <span className="text-gray-300 font-mono">-</span>}
+        </td>
+      </>)
+
+    case 'structuring':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.nearLimit ? (
+            <span className="inline-flex items-center gap-0.5 text-amber-500 font-mono text-[10px] font-semibold">
+              <AlertTriangle className="w-3 h-3" />
+              {(txn.nearPct * 100).toFixed(0)}%
+            </span>
+          ) : txn.amount >= txn.reportingThreshold ? (
+            <span className="text-red-400 font-mono text-[10px]">&ge;100%</span>
+          ) : (
+            <span className="text-gray-300 font-mono text-[10px]">{(txn.nearPct * 100).toFixed(0)}%</span>
+          )}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          {txn.nearLimit ? (
+            <span className={`font-mono text-[11px] ${accent}`}>
+              {txn.nearCount}<span className="text-gray-300 mx-0.5">/</span><span className="text-gray-400">{txn.countTrigger}</span>
+            </span>
+          ) : <span className="text-gray-300 font-mono">-</span>}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '-'}
+        </td>
+      </>)
+
+    case 'rapid-movement':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.direction === 'inflow' ? (
+            <ArrowDownRight className="w-3.5 h-3.5 text-emerald-500 inline" />
+          ) : (
+            <ArrowUpRight className="w-3.5 h-3.5 text-red-400 inline" />
+          )}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.cumulIn > 0 ? formatCurrency(txn.cumulIn) : '-'}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.cumulOut > 0 ? formatCurrency(txn.cumulOut) : '-'}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          {txn.cumulIn > 0 ? (
+            <span className={`font-mono text-[11px] ${txn.ratioTriggered ? 'text-[#00A99D] font-semibold' : txn.ratio >= txn.ratioThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
+              {(txn.ratio * 100).toFixed(1)}%
+            </span>
+          ) : <span className="text-gray-300 font-mono">-</span>}
+        </td>
+      </>)
+
+    case 'escalating':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.qualifies ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.rollingAvg !== null ? formatCurrency(txn.rollingAvg) : '-'}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.priorAvg !== null ? formatCurrency(txn.priorAvg) : '-'}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          {txn.growth !== null ? (
+            <span className={`font-mono text-[11px] ${isAtOrPast ? 'text-[#00A99D] font-semibold' : txn.growth >= txn.growthThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
+              &times;{txn.growth.toFixed(2)}
+            </span>
+          ) : <span className="text-gray-300 font-mono">-</span>}
+        </td>
+      </>)
+  }
 }
 
 // ---------------------------------------------------------------------------

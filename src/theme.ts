@@ -1,5 +1,5 @@
 export const CHART_COLORS = {
-  indigo: '#6366f1',
+  indigo: '#00A99D',
   violet: '#8b5cf6',
   violetLight: '#a78bfa',
   violetLighter: '#c084fc',

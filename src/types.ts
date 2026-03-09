@@ -49,6 +49,17 @@ export interface PerformanceMetrics {
   alertVolume: number
   sarHitRate: number
   falsePositiveRate: number
+  ci?: PerformanceMetricsCI
+}
+
+/** 90% credible intervals for each metric — only present when inferred labels are used */
+export interface PerformanceMetricsCI {
+  precision: [number, number]
+  recall: [number, number]
+  f1: [number, number]
+  alertVolume: [number, number]
+  sarHitRate: [number, number]
+  falsePositiveRate: [number, number]
 }
 
 export interface PopulationSegment {
@@ -81,6 +92,14 @@ export type ExecutionFidelity = "simplified" | "production_replicated"
 export type TaxonomyLevel = "l1" | "l2" | "l3" | "global"
 export type PerformanceView = "absolute" | "marginal"
 export type StratificationDimension = "overall" | "country" | "customer_type" | "product" | "channel"
+
+export interface RuleTestingStatus {
+  ruleId: string
+  status: 'needs_testing' | 'recently_tested' | 'stale'
+  reason?: string
+  lastTestedAt?: string
+  lastTestedDaysAgo?: number
+}
 export type LabelConfidence = "formal_only" | "formal_inferred"
 
 export interface StratifiedMetrics {
@@ -122,6 +141,7 @@ export interface TransactionRecord {
   counterparty: string
   channel: string
   passedFilters: boolean
+  direction?: 'inflow' | 'outflow'
 }
 
 export interface ThresholdComparison {

@@ -26,7 +26,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode }: Prop
       <div className="h-2.5 rounded-full overflow-hidden bg-black/[0.06] flex">
         <motion.div
           className="h-full rounded-l-full"
-          style={{ backgroundColor: '#6366f1' }}
+          style={{ backgroundColor: '#00A99D' }}
           initial={{ width: 0 }}
           animate={{ width: `${formalPct}%` }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -52,7 +52,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode }: Prop
 
       <div className="flex items-center gap-5 mt-3">
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#6366f1' }} />
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#00A99D' }} />
           <span className="text-[11px] font-mono text-gray-500">
             Formal: {formal.toLocaleString()}
           </span>

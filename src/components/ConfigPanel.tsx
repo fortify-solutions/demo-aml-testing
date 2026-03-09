@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, ChevronDown, Check } from 'lucide-react'
-import type { Rule, ExecutionFidelity } from '../types'
-import { RULES } from '../data/mockData'
+import { Search, ChevronDown, Check, AlertTriangle, Clock, CheckCircle2, Play, Loader2 } from 'lucide-react'
+import type { Rule } from '../types'
+import { RULES, RULE_TESTING_STATUS } from '../data/mockData'
 
 interface ConfigPanelProps {
   selectedRule: Rule | null
@@ -10,20 +10,53 @@ interface ConfigPanelProps {
   dateTo: string
   onDateFromChange: (v: string) => void
   onDateToChange: (v: string) => void
-  suppressionIncluded: boolean
-  onSuppressionChange: (v: boolean) => void
-  executionFidelity: ExecutionFidelity
-  onFidelityChange: (f: ExecutionFidelity) => void
   onRunBacktest: () => void
   isRunning: boolean
+}
+
+function RuleStatusBadge({ ruleId }: { ruleId: string }) {
+  const status = RULE_TESTING_STATUS[ruleId]
+  if (!status) return null
+
+  if (status.status === 'needs_testing') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200/60 rounded-full px-1.5 py-0.5">
+        <AlertTriangle className="w-2.5 h-2.5" />
+        {status.reason}
+      </span>
+    )
+  }
+
+  if (status.status === 'stale') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-orange-600 bg-orange-50 border border-orange-200/60 rounded-full px-1.5 py-0.5">
+        <Clock className="w-2.5 h-2.5" />
+        {status.reason ?? `${status.lastTestedDaysAgo}d ago`}
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/60 rounded-full px-1.5 py-0.5">
+      <CheckCircle2 className="w-2.5 h-2.5" />
+      {status.lastTestedDaysAgo}d ago
+    </span>
+  )
+}
+
+/** Small dot indicator for the selected rule in the top bar */
+function StatusDot({ ruleId }: { ruleId: string }) {
+  const status = RULE_TESTING_STATUS[ruleId]
+  if (!status) return null
+  const color = status.status === 'needs_testing' ? 'bg-amber-400' :
+    status.status === 'stale' ? 'bg-orange-400' : 'bg-emerald-400'
+  return <span className={`w-1.5 h-1.5 rounded-full ${color} shrink-0`} />
 }
 
 export function ConfigPanel(props: ConfigPanelProps) {
   const {
     selectedRule, onSelectRule,
     dateFrom, dateTo, onDateFromChange, onDateToChange,
-    suppressionIncluded, onSuppressionChange,
-    executionFidelity, onFidelityChange,
     onRunBacktest, isRunning,
   } = props
 
@@ -46,148 +79,134 @@ export function ConfigPanel(props: ConfigPanelProps) {
     r.taxonomy.l1.toLowerCase().includes(ruleSearch.toLowerCase())
   )
 
+  // Sort: needs_testing first, stale second, recently_tested last
+  const sortedRules = [...filteredRules].sort((a, b) => {
+    const order = { needs_testing: 0, stale: 1, recently_tested: 2 }
+    const sa = RULE_TESTING_STATUS[a.id]?.status ?? 'recently_tested'
+    const sb = RULE_TESTING_STATUS[b.id]?.status ?? 'recently_tested'
+    return order[sa] - order[sb]
+  })
+
   const canRun = selectedRule && dateFrom && dateTo && !isRunning
 
-  return (
-    <div className="w-[280px] shrink-0 border-r border-(--color-border) bg-(--color-surface) px-5 py-4 space-y-5 overflow-y-auto">
-      {/* Rule Selection */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">Rule</label>
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setRuleDropdownOpen(!ruleDropdownOpen)}
-            className="w-full flex items-center justify-between rounded-xl bg-black/[0.05] border border-(--color-border-strong) px-3 py-2 text-[13px] text-gray-700 hover:bg-black/[0.08] transition-all cursor-pointer"
-          >
-            <span className="truncate">
-              {selectedRule ? selectedRule.name : 'Select a rule...'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-2" />
-          </button>
+  // Count rules needing attention
+  const needsAttentionCount = Object.values(RULE_TESTING_STATUS).filter(
+    s => s.status === 'needs_testing' || s.status === 'stale'
+  ).length
 
-          {ruleDropdownOpen && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl bg-white border border-(--color-border) shadow-2xl overflow-hidden">
-              <div className="p-2 border-b border-(--color-border)">
-                <div className="flex items-center gap-2 rounded-lg bg-black/[0.04] px-2.5 py-1.5">
-                  <Search className="w-3.5 h-3.5 text-gray-400" />
-                  <input
-                    value={ruleSearch}
-                    onChange={e => setRuleSearch(e.target.value)}
-                    placeholder="Search rules..."
-                    className="bg-transparent text-[12px] text-gray-700 placeholder:text-gray-400 outline-none w-full"
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <div className="max-h-[240px] overflow-y-auto py-1">
-                {filteredRules.map(rule => (
-                  <button
-                    key={rule.id}
-                    onClick={() => { onSelectRule(rule); setRuleDropdownOpen(false); setRuleSearch('') }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-black/[0.04] transition-colors cursor-pointer"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] text-gray-700 truncate">{rule.name}</div>
-                    </div>
-                    <span className="text-[9px] font-mono text-gray-400 bg-black/[0.04] rounded-full px-1.5 py-0.5 shrink-0">
-                      {rule.taxonomy.l1}
-                    </span>
-                    {selectedRule?.id === rule.id && (
-                      <Check className="w-3 h-3 text-indigo-500 shrink-0" />
-                    )}
-                  </button>
-                ))}
+  return (
+    <div className="h-14 flex items-center gap-4 px-6 border-b border-(--color-border) bg-(--color-surface) shrink-0">
+      {/* Rule Selection */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setRuleDropdownOpen(!ruleDropdownOpen)}
+          className="flex items-center gap-2 rounded-xl bg-black/[0.05] border border-(--color-border-strong) px-3 py-2 text-[13px] text-gray-700 hover:bg-black/[0.08] transition-all cursor-pointer min-w-[240px]"
+        >
+          {selectedRule && <StatusDot ruleId={selectedRule.id} />}
+          <span className="truncate flex-1 text-left">
+            {selectedRule ? selectedRule.name : 'Select a rule...'}
+          </span>
+          {!selectedRule && needsAttentionCount > 0 && (
+            <span className="text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200/60 rounded-full px-1.5 py-0.5 shrink-0">
+              {needsAttentionCount} need testing
+            </span>
+          )}
+          <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+        </button>
+
+        {ruleDropdownOpen && (
+          <div className="absolute z-50 top-full left-0 mt-1 rounded-xl bg-white border border-(--color-border) shadow-2xl overflow-hidden min-w-[360px]">
+            <div className="p-2 border-b border-(--color-border)">
+              <div className="flex items-center gap-2 rounded-lg bg-black/[0.04] px-2.5 py-1.5">
+                <Search className="w-3.5 h-3.5 text-gray-400" />
+                <input
+                  value={ruleSearch}
+                  onChange={e => setRuleSearch(e.target.value)}
+                  placeholder="Search rules..."
+                  className="bg-transparent text-[12px] text-gray-700 placeholder:text-gray-400 outline-none w-full"
+                  autoFocus
+                />
               </div>
             </div>
-          )}
-        </div>
-
-        {selectedRule && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {[selectedRule.taxonomy.l1, selectedRule.taxonomy.l2, selectedRule.taxonomy.l3].map((tag, i) => (
-              <span key={i} className="text-[9px] font-mono text-gray-500 bg-black/[0.04] rounded-full px-2 py-0.5">
-                L{i + 1}: {tag}
-              </span>
-            ))}
+            <div className="max-h-[320px] overflow-y-auto py-1">
+              {sortedRules.map(rule => (
+                <button
+                  key={rule.id}
+                  onClick={() => { onSelectRule(rule); setRuleDropdownOpen(false); setRuleSearch('') }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-black/[0.04] transition-colors cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-gray-700 truncate">{rule.name}</span>
+                      <span className="text-[9px] font-mono text-gray-400 bg-black/[0.04] rounded-full px-1.5 py-0.5 shrink-0">
+                        {rule.taxonomy.l1}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      <RuleStatusBadge ruleId={rule.id} />
+                    </div>
+                  </div>
+                  {selectedRule?.id === rule.id && (
+                    <Check className="w-3 h-3 text-[#00A99D] shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Date Range */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">Date Range</label>
-        <div className="space-y-2">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={e => onDateFromChange(e.target.value)}
-            className="w-full rounded-xl bg-black/[0.05] border border-(--color-border-strong) px-3 py-2 text-[12px] text-gray-700 outline-none focus:border-gray-400 transition-all"
-          />
-          <input
-            type="date"
-            value={dateTo}
-            onChange={e => onDateToChange(e.target.value)}
-            className="w-full rounded-xl bg-black/[0.05] border border-(--color-border-strong) px-3 py-2 text-[12px] text-gray-700 outline-none focus:border-gray-400 transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Suppression */}
-      <div className="space-y-1.5">
-        <label className="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
-            checked={suppressionIncluded}
-            onChange={e => onSuppressionChange(e.target.checked)}
-            className="w-3.5 h-3.5 rounded bg-black/[0.05] border border-(--color-border-strong) accent-indigo-500"
-          />
-          <span className="text-[11px] text-gray-500 group-hover:text-gray-700 transition-colors">
-            Include suppressed alerts as misses
-          </span>
-        </label>
-      </div>
-
-      {/* Execution Fidelity */}
-      <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">Execution Fidelity</label>
-        <div className="flex rounded-xl bg-black/[0.03] border border-(--color-border) p-0.5">
-          {(['simplified', 'production_replicated'] as ExecutionFidelity[]).map(f => (
-            <button
-              key={f}
-              onClick={() => onFidelityChange(f)}
-              className={`flex-1 rounded-lg py-1.5 text-[10px] font-medium transition-all cursor-pointer ${
-                executionFidelity === f
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              {f === 'simplified' ? 'Simplified' : 'Production'}
-            </button>
+      {/* Taxonomy tags for selected rule — hidden below 1200px to prevent overflow */}
+      {selectedRule && (
+        <div className="hidden xl:flex gap-1 shrink-0">
+          {[selectedRule.taxonomy.l1, selectedRule.taxonomy.l2, selectedRule.taxonomy.l3].map((tag, i) => (
+            <span key={i} className="text-[9px] font-mono text-gray-500 bg-black/[0.04] rounded-full px-2 py-0.5 whitespace-nowrap">
+              L{i + 1}: {tag}
+            </span>
           ))}
         </div>
-        {executionFidelity === 'production_replicated' && selectedRule && (
-          <p className="text-[10px] text-gray-400 leading-relaxed">
-            Replicates {selectedRule.batchCadenceHours}h cadence with {selectedRule.lookbackWindowHours}h lookback
-          </p>
-        )}
+      )}
+
+      <div className="flex-1" />
+
+      {/* Date Range — compact inline */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Period</span>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => onDateFromChange(e.target.value)}
+          className="rounded-lg bg-black/[0.05] border border-(--color-border) px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-gray-400 transition-all w-[120px]"
+        />
+        <span className="text-[11px] text-gray-300">–</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => onDateToChange(e.target.value)}
+          className="rounded-lg bg-black/[0.05] border border-(--color-border) px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-gray-400 transition-all w-[120px]"
+        />
       </div>
 
       {/* Run Button */}
       <button
         onClick={onRunBacktest}
         disabled={!canRun}
-        className={`w-full rounded-xl py-2.5 text-sm font-medium transition-all cursor-pointer ${
+        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-medium transition-all cursor-pointer shrink-0 ${
           canRun
-            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+            ? 'bg-[#00A99D] text-white hover:bg-[#009488]'
             : 'bg-black/[0.04] text-gray-300 cursor-not-allowed'
         }`}
       >
         {isRunning ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-3.5 h-3.5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Running...
-          </span>
+          </>
         ) : (
-          'Run Backtest'
+          <>
+            <Play className="w-3.5 h-3.5" />
+            Run Backtest
+          </>
         )}
       </button>
     </div>

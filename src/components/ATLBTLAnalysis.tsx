@@ -1,4 +1,6 @@
-import { Sliders, ArrowUp, ArrowDown } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sliders, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { PopulationSegment, LabelMode, Rule } from '../types'
 import { CHART_COLORS } from '../theme'
@@ -136,49 +138,68 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
 }
 
 export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
+  const [expanded, setExpanded] = useState(false)
   const threshold = buildThresholdDescription(rule)
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
+      >
         <Sliders className="w-3.5 h-3.5 text-gray-400" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           ATL / BTL Analysis
         </span>
-      </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
+      </button>
 
-      {/* Threshold definition banner */}
-      <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
-        <div className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold mb-2">
-          Rule Threshold — {rule.name}
-        </div>
-        <div className="space-y-1.5">
-          {threshold.conditions.map((c, i) => (
-            <div key={i} className="flex items-baseline gap-2">
-              <span className="text-[12px] font-mono font-semibold text-indigo-600">{c.value}</span>
-              <span className="text-[11px] text-gray-500">{c.label}</span>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5">
+              {/* Threshold definition banner */}
+              <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
+                <div className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                  Rule Threshold — {rule.name}
+                </div>
+                <div className="space-y-1.5">
+                  {threshold.conditions.map((c, i) => (
+                    <div key={i} className="flex items-baseline gap-2">
+                      <span className="text-[12px] font-mono font-semibold text-indigo-600">{c.value}</span>
+                      <span className="text-[11px] text-gray-500">{c.label}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[12px] font-mono font-semibold text-indigo-600">{threshold.window}</span>
+                    <span className="text-[11px] text-gray-500">Evaluation period</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-0">
+                <SegmentColumn segment={atl} side="left" labelMode={labelMode} />
+
+                {/* Threshold divider */}
+                <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
+                  <div className="absolute inset-0 bg-indigo-200/50" />
+                  <div className="absolute text-[9px] uppercase tracking-wider text-indigo-300 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                    Threshold
+                  </div>
+                </div>
+
+                <SegmentColumn segment={btl} side="right" labelMode={labelMode} />
+              </div>
             </div>
-          ))}
-          <div className="flex items-baseline gap-2">
-            <span className="text-[12px] font-mono font-semibold text-indigo-600">{threshold.window}</span>
-            <span className="text-[11px] text-gray-500">Evaluation period</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-0">
-        <SegmentColumn segment={atl} side="left" labelMode={labelMode} />
-
-        {/* Threshold divider */}
-        <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
-          <div className="absolute inset-0 bg-indigo-200/50" />
-          <div className="absolute text-[9px] uppercase tracking-wider text-indigo-300 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-            Threshold
-          </div>
-        </div>
-
-        <SegmentColumn segment={btl} side="right" labelMode={labelMode} />
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
