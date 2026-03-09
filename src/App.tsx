@@ -6,6 +6,7 @@ import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/com
 import { ConfigPanel } from './components/ConfigPanel'
 import { ResultsToolbar } from './components/ResultsToolbar'
 import { LabelCompositionBar } from './components/LabelCompositionBar'
+import { RuleLogicPanel } from './components/RuleLogicPanel'
 import { AbsolutePerformance } from './components/AbsolutePerformance'
 import { MarginalPerformance } from './components/MarginalPerformance'
 import { PerformanceDataTable } from './components/PerformanceDataTable'
@@ -152,6 +153,8 @@ export default function App() {
                     performanceView={performanceView}
                     onPerformanceViewChange={setPerformanceView}
                   />
+
+                  <RuleLogicPanel rule={selectedRule!} />
 
                   <LabelCompositionBar
                     formal={activeResult.labelComposition.formal}

@@ -36,6 +36,7 @@ A secondary toolbar appears with results, offering four controls that update all
 
 Scrolling down through the main content area:
 
+- **Rule Logic** — displays the selected rule's description, a human-readable trigger condition, and a parameter summary (thresholds, lookback window, batch cadence).
 - **Label Composition** — horizontal bar showing the formal / inferred label split. In Formal mode the inferred segment dims with a strikethrough.
 - **Absolute Performance** — six metric cards (Precision, Recall, F1, Alert Volume, SAR Hit Rate, False Positive Rate). In Formal + Inferred mode each card shows a secondary "formal only" value and an SVG bell-curve density visualisation of the 90% credible interval (dark teal at the posterior mean, fading to transparent at the tails).
 - **Marginal Performance** — same metrics showing what this rule *uniquely contributes* relative to its peer group. Use the taxonomy toggle (L1 / L2 / L3 / Global) to change scope. Delta rows show improvement (green) or regression (red).
@@ -43,10 +44,13 @@ Scrolling down through the main content area:
 - **Alert Volume** — area chart of alerts, formal SARs, and inferred SARs over time (marginal view only).
 - **Alert Explorer** — expandable table of individual alerts. Expand any alert to see its transactions with rule-specific running state columns:
   - *High Velocity Cash Deposits*: ≥ Floor, In Scope, Velocity count
+  - *Rapid Cross-Border Transfers*: New Beneficiary, Distinct count
+  - *Dormant Account Reactivation*: Day offset, ≥ Threshold, Cumulative $
+  - *Remittance Fan-Out Detection*: New Sender, Sender count
   - *Sub-CTR Structuring*: Near Limit %, Running Count, Cumulative $
   - *Rapid Fund Movement*: Direction (↑/↓), Cumulative In/Out, Out/In Ratio
   - *Escalating Amounts*: Rolling Avg, Prior Avg, Growth factor
-  - Trigger rows are highlighted in amber when the rule condition is met.
+  - Trigger rows are highlighted in teal when the rule condition is met.
 - **ATL / BTL Analysis** — above/below threshold population comparison (collapsible).
 - **Recommendations** — AI-generated optimisation suggestions with before/after metrics and confidence levels (collapsible). Hovering a recommendation highlights affected metric cards.
 
@@ -64,6 +68,7 @@ src/
   components/
     ConfigPanel.tsx                Top bar with rule selector, date range, and run button
     ResultsToolbar.tsx             Ground truth, labels, unit, and view toggles
+    RuleLogicPanel.tsx             Rule description, trigger condition, and parameter display
     LabelCompositionBar.tsx        Formal / inferred label split bar
     AbsolutePerformance.tsx        Metric cards with SVG bell-curve credible interval density
     MarginalPerformance.tsx        Marginal metrics with taxonomy toggle and delta row

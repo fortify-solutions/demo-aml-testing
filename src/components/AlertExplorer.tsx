@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, UserPlus, Minus } from 'lucide-react'
 import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, TransactionRecord } from '../types'
 
 interface Props {
@@ -343,7 +343,29 @@ interface EscalatingEnriched extends EnrichedBase {
   qualifyingCount: number
 }
 
-type EnrichedTxn = VelocityEnriched | StructuringEnriched | RapidMovementEnriched | EscalatingEnriched
+interface CrossBorderEnriched extends EnrichedBase {
+  _rule: 'cross-border'
+  isNewBeneficiary: boolean
+  distinctBeneficiaries: number
+  beneficiaryThreshold: number
+}
+
+interface DormancyEnriched extends EnrichedBase {
+  _rule: 'dormancy'
+  daysSinceStart: number
+  exceedsReactivation: boolean
+  cumulativeAmount: number
+  reactivationThreshold: number
+}
+
+interface FanOutEnriched extends EnrichedBase {
+  _rule: 'fan-out'
+  isNewSender: boolean
+  distinctSenders: number
+  senderThreshold: number
+}
+
+type EnrichedTxn = VelocityEnriched | StructuringEnriched | RapidMovementEnriched | EscalatingEnriched | CrossBorderEnriched | DormancyEnriched | FanOutEnriched
 
 function getParam(rule: Rule, id: string): number {
   const p = rule.parameters.find(p => p.id === id)
@@ -438,6 +460,52 @@ function enrichTransactions(alert: AlertRecord, rule: Rule): { txns: EnrichedTxn
         }
         if (trigger === -1 && growth !== null && growth >= growthThreshold && qCount >= minTxns) trigger = i
         return { ...txn, _rule: 'escalating' as const, qualifies, rollingAvg, priorAvg, growth, growthThreshold, minTxns, qualifyingCount: qCount, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-002': {
+      // Rapid Cross-Border Transfers: count distinct beneficiaries
+      const beneficiaryThreshold = getParam(rule, 'p4')
+      const seenBeneficiaries = new Set<string>()
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const isNew = txn.passedFilters && !seenBeneficiaries.has(txn.counterparty)
+        if (txn.passedFilters) seenBeneficiaries.add(txn.counterparty)
+        const count = seenBeneficiaries.size
+        if (trigger === -1 && count >= beneficiaryThreshold) trigger = i
+        return { ...txn, _rule: 'cross-border' as const, isNewBeneficiary: isNew, distinctBeneficiaries: count, beneficiaryThreshold, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-003': {
+      // Dormant Account Reactivation: track cumulative amount, flag high-value txns
+      const reactivationThreshold = getParam(rule, 'p7')
+      const windowStartDate = sorted.length > 0 ? new Date(sorted[0].date) : new Date()
+      let cumulativeAmount = 0
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const daysSinceStart = Math.round((new Date(txn.date).getTime() - windowStartDate.getTime()) / 86400000)
+        const exceedsReactivation = txn.passedFilters && txn.amount >= reactivationThreshold
+        if (txn.passedFilters) cumulativeAmount += txn.amount
+        if (trigger === -1 && exceedsReactivation) trigger = i
+        return { ...txn, _rule: 'dormancy' as const, daysSinceStart, exceedsReactivation, cumulativeAmount, reactivationThreshold, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
+      })
+      return { txns, triggerIdx: trigger }
+    }
+
+    case 'rule-004': {
+      // Remittance Fan-Out: count distinct senders
+      const senderThreshold = getParam(rule, 'p8')
+      const seenSenders = new Set<string>()
+      let trigger = -1
+      const txns = sorted.map((txn, i) => {
+        const isNew = txn.passedFilters && !seenSenders.has(txn.counterparty)
+        if (txn.passedFilters) seenSenders.add(txn.counterparty)
+        const count = seenSenders.size
+        if (trigger === -1 && count >= senderThreshold) trigger = i
+        return { ...txn, _rule: 'fan-out' as const, isNewSender: isNew, distinctSenders: count, senderThreshold, triggered: trigger !== -1 && i >= trigger, triggerIdx: trigger }
       })
       return { txns, triggerIdx: trigger }
     }
@@ -568,6 +636,28 @@ function RuleSummaryBadge({ rule }: { rule: Rule }) {
           Floor: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p17'))}</span>
         </span>
       )
+    case 'rule-002':
+      return (
+        <span className="text-[10px] text-gray-500 ml-auto">
+          Distinct Beneficiaries: <span className="font-semibold text-gray-600">&ge;{getParam(rule, 'p4')}</span>
+          <span className="mx-1.5 text-gray-500">|</span>
+          Window: <span className="font-semibold text-gray-600">{getParam(rule, 'p5')}h</span>
+        </span>
+      )
+    case 'rule-003':
+      return (
+        <span className="text-[10px] text-gray-500 ml-auto">
+          Dormancy: <span className="font-semibold text-gray-600">{getParam(rule, 'p6')} days</span>
+          <span className="mx-1.5 text-gray-500">|</span>
+          Reactivation: <span className="font-semibold text-gray-600">&ge;{formatCurrency(getParam(rule, 'p7'))}</span>
+        </span>
+      )
+    case 'rule-004':
+      return (
+        <span className="text-[10px] text-gray-500 ml-auto">
+          Distinct Senders: <span className="font-semibold text-gray-600">&ge;{getParam(rule, 'p8')}</span>
+        </span>
+      )
     default:
       return null
   }
@@ -601,6 +691,22 @@ function RuleColumnHeaders({ ruleId }: { ruleId: string }) {
         <th className={`${th} text-right`}>Rolling Avg</th>
         <th className={`${th} text-right`}>Prior Avg</th>
         <th className={`${th} text-right`}>Growth</th>
+      </>)
+    case 'rule-002':
+      return (<>
+        <th className={`${th} text-center`}>New Benef.</th>
+        <th className={`${th} text-right`}>Distinct</th>
+      </>)
+    case 'rule-003':
+      return (<>
+        <th className={`${th} text-right`}>Day</th>
+        <th className={`${th} text-center`}>&ge; Threshold</th>
+        <th className={`${th} text-right`}>Cumul. $</th>
+      </>)
+    case 'rule-004':
+      return (<>
+        <th className={`${th} text-center`}>New Sender</th>
+        <th className={`${th} text-right`}>Senders</th>
       </>)
     default:
       return <th className={`${th} text-center`}>In Scope</th>
@@ -696,6 +802,43 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
               &times;{txn.growth.toFixed(2)}
             </span>
           ) : <span className="text-gray-500 font-mono">-</span>}
+        </td>
+      </>)
+
+    case 'cross-border':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.isNewBeneficiary ? <UserPlus className="w-3.5 h-3.5 text-emerald-400 inline" /> : <Minus className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          <span className={`font-mono text-[11px] ${accent}`}>
+            {txn.distinctBeneficiaries}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.beneficiaryThreshold}</span>
+          </span>
+        </td>
+      </>)
+
+    case 'dormancy':
+      return (<>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500 text-[11px]">
+          +{txn.daysSinceStart}d
+        </td>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.exceedsReactivation ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 inline" /> : <Minus className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
+          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '-'}
+        </td>
+      </>)
+
+    case 'fan-out':
+      return (<>
+        <td className="px-2.5 py-1.5 text-center">
+          {txn.isNewSender ? <UserPlus className="w-3.5 h-3.5 text-emerald-400 inline" /> : <Minus className="w-3.5 h-3.5 text-gray-300 inline" />}
+        </td>
+        <td className="px-2.5 py-1.5 text-right">
+          <span className={`font-mono text-[11px] ${accent}`}>
+            {txn.distinctSenders}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.senderThreshold}</span>
+          </span>
         </td>
       </>)
   }
