@@ -111,7 +111,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
               {needsAttentionCount} need testing
             </span>
           )}
-          <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
         </button>
 
         {ruleDropdownOpen && (
@@ -171,14 +171,14 @@ export function ConfigPanel(props: ConfigPanelProps) {
 
       {/* Date Range — compact inline */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Period</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Period</span>
         <input
           type="date"
           value={dateFrom}
           onChange={e => onDateFromChange(e.target.value)}
           className="rounded-lg bg-black/[0.05] border border-(--color-border) px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-gray-400 transition-all w-[120px]"
         />
-        <span className="text-[11px] text-gray-300">–</span>
+        <span className="text-[11px] text-gray-500">–</span>
         <input
           type="date"
           value={dateTo}

@@ -33,10 +33,10 @@ const LEVEL_LABELS: Record<TaxonomyLevel, string> = {
 function formatDelta(val: number, key: NumericMetricKey): { text: string; color: string } {
   if (key === 'alertVolume') {
     const sign = val > 0 ? '+' : ''
-    return { text: `${sign}${val.toLocaleString()}`, color: 'text-gray-400' }
+    return { text: `${sign}${val.toLocaleString()}`, color: 'text-gray-500' }
   }
   const pp = val * 100
-  if (Math.abs(pp) < 0.05) return { text: '0.0pp', color: 'text-gray-400' }
+  if (Math.abs(pp) < 0.05) return { text: '0.0pp', color: 'text-gray-500' }
   const sign = pp > 0 ? '+' : ''
   const isGood = key === 'falsePositiveRate' ? pp < 0 : pp > 0
   return {
@@ -69,7 +69,7 @@ function InlineProportionBar({ baseline, marginal, isRate, invertColor }: { base
           }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-gray-400">
+      <div className="flex justify-between text-[9px] text-gray-500">
         <span>peer group</span>
         <span>+ this rule</span>
       </div>
@@ -86,10 +86,10 @@ export function MarginalPerformance({ marginalData, baselineData, absoluteData, 
   const levels: TaxonomyLevel[] = ['l1', 'l2', 'l3', 'global']
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <GitBranch className="w-3.5 h-3.5 text-gray-400" />
+          <GitBranch className="w-3.5 h-3.5 text-gray-500" />
           <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
             Marginal Performance
           </span>
@@ -104,12 +104,12 @@ export function MarginalPerformance({ marginalData, baselineData, absoluteData, 
               className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all cursor-pointer ${
                 selectedLevel === level
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {LEVEL_LABELS[level]}
               {level !== 'global' && (
-                <span className="text-gray-300 ml-0.5">
+                <span className="text-gray-500 ml-0.5">
                   — {taxonomy[level as 'l1' | 'l2' | 'l3']}
                 </span>
               )}
@@ -118,7 +118,7 @@ export function MarginalPerformance({ marginalData, baselineData, absoluteData, 
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-400 mb-4">
+      <p className="text-[10px] text-gray-500 mb-4">
         Showing contribution of this rule if added to {peerCount} {levelName} rules
       </p>
 
@@ -153,7 +153,7 @@ export function MarginalPerformance({ marginalData, baselineData, absoluteData, 
 
                   {/* Peer group context */}
                   <div className="flex items-baseline gap-1.5 mt-2">
-                    <span className="text-[10px] text-gray-300">vs peer group at</span>
+                    <span className="text-[10px] text-gray-500">vs peer group at</span>
                     <span className="text-[12px] font-mono text-gray-500">
                       {mc.format(baselineVal)}
                     </span>

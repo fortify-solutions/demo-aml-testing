@@ -106,7 +106,7 @@ export default function App() {
                   exit={{ opacity: 0 }}
                   className="flex items-center justify-center h-[60vh]"
                 >
-                  <span className="text-[13px] text-gray-300">
+                  <span className="text-[13px] text-gray-400">
                     Select a rule and run a backtest to begin.
                   </span>
                 </motion.div>

@@ -27,14 +27,14 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
       {baseline && (
         <div className="flex items-center gap-2 text-[11px]">
           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 opacity-40" />
-          <span className="text-gray-400">Peer group:</span>
+          <span className="text-gray-500">Peer group:</span>
           <span className="font-mono text-gray-700">{(baseline.value * 100).toFixed(1)}%</span>
         </div>
       )}
       {marginal && (
         <div className="flex items-center gap-2 text-[11px]">
           <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-          <span className="text-gray-400">This rule:</span>
+          <span className="text-gray-500">This rule:</span>
           <span className="font-mono text-gray-700">+{(marginal.value * 100).toFixed(1)}pp</span>
         </div>
       )}

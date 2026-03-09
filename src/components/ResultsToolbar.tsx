@@ -70,10 +70,10 @@ export function ResultsToolbar(props: Props) {
   ]
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5 panel-shadow">
       {/* Ground Truth */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Ground Truth</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Ground Truth</span>
         <GroundTruthSelector value={groundTruth} onChange={onGroundTruthChange} />
       </div>
 
@@ -81,7 +81,7 @@ export function ResultsToolbar(props: Props) {
 
       {/* Label Confidence */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Labels</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Labels</span>
         <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
           {labelConfidenceOptions.map(opt => (
             <button
@@ -90,7 +90,7 @@ export function ResultsToolbar(props: Props) {
               className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition-all cursor-pointer ${
                 labelConfidence === opt.value
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {opt.label}
@@ -103,7 +103,7 @@ export function ResultsToolbar(props: Props) {
 
       {/* Unit of Analysis */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Unit</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Unit</span>
         <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
           {units.map(u => (
             <button
@@ -112,7 +112,7 @@ export function ResultsToolbar(props: Props) {
               className={`rounded-md px-2.5 py-1 text-[10px] font-medium capitalize transition-all cursor-pointer ${
                 unitOfAnalysis === u
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {u}
@@ -125,7 +125,7 @@ export function ResultsToolbar(props: Props) {
 
       {/* Performance View */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">View</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">View</span>
         <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
           {(['absolute', 'marginal'] as PerformanceView[]).map(v => (
             <button
@@ -134,7 +134,7 @@ export function ResultsToolbar(props: Props) {
               className={`rounded-md px-2.5 py-1 text-[10px] font-medium capitalize transition-all cursor-pointer ${
                 performanceView === v
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {v}

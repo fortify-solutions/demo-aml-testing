@@ -86,20 +86,20 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
   const levelLabel = taxonomyLevel === 'global' ? 'Global' : taxonomyLevel.toUpperCase()
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       {/* Toggle header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
-        <FileSearch className="w-3.5 h-3.5 text-gray-400" />
+        <FileSearch className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Alert Explorer
         </span>
-        <span className="text-[10px] text-gray-400 ml-1">
+        <span className="text-[10px] text-gray-500 ml-1">
           {viewFiltered.length} alerts
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -115,7 +115,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
               {/* Toolbar: search + marginal badge */}
               <div className="flex items-center gap-3">
                 <div className="relative flex-1 max-w-xs">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
                   <input
                     type="text"
                     placeholder="Search entity ID or name..."
@@ -130,7 +130,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
                     Showing marginal only ({levelLabel})
                   </span>
                 )}
-                <span className="text-[11px] text-gray-400 ml-auto">
+                <span className="text-[11px] text-gray-500 ml-auto">
                   {sorted.length} result{sorted.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
                     ))}
                     {paginated.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-[12px]">
+                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-[12px]">
                           No alerts match the current filters.
                         </td>
                       </tr>
@@ -189,7 +189,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-gray-500">
                     Page {page + 1} of {totalPages}
                   </span>
                   <div className="flex gap-1">
@@ -235,7 +235,7 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
         className={`border-t border-(--color-border) cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/40' : 'hover:bg-gray-50/60'}`}
       >
         <td className="pl-3 pr-1 py-2">
-          <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          <ChevronRight className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </td>
         <td className="px-3 py-2 font-mono text-gray-500">{alert.entityId}</td>
         <td className="px-3 py-2 font-medium text-gray-700">{alert.entityName}</td>
@@ -257,7 +257,7 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
               <AlertTriangle className="w-3 h-3" /> Inferred
             </span>
           ) : (
-            <span className="text-gray-300">-</span>
+            <span className="text-gray-500">-</span>
           )}
         </td>
       </tr>
@@ -472,7 +472,7 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
         <h4 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">
           Transactions in Aggregation Window
         </h4>
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-gray-500">
           {formatDate(alert.aggregationWindowStart)} - {formatDate(alert.aggregationWindowEnd)}
         </span>
       </div>
@@ -480,7 +480,7 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
         <span className="text-[10px] text-gray-500">
           <span className="font-semibold text-gray-700">{inScope}</span> in scope
         </span>
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-gray-500">
           <span className="font-semibold text-gray-500">{outScope}</span> filtered out
         </span>
         <RuleSummaryBadge rule={rule} />
@@ -534,37 +534,37 @@ function RuleSummaryBadge({ rule }: { rule: Rule }) {
   switch (rule.id) {
     case 'rule-001':
       return (
-        <span className="text-[10px] text-gray-400 ml-auto">
+        <span className="text-[10px] text-gray-500 ml-auto">
           Floor: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p2'))}</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Velocity: <span className="font-semibold text-gray-600">{getParam(rule, 'p1')} txns</span>
         </span>
       )
     case 'rule-005':
       return (
-        <span className="text-[10px] text-gray-400 ml-auto">
+        <span className="text-[10px] text-gray-500 ml-auto">
           CTR Limit: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p10'))}</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Near: <span className="font-semibold text-gray-600">&ge;{(getParam(rule, 'p11') * 100).toFixed(0)}%</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Trigger: <span className="font-semibold text-gray-600">{getParam(rule, 'p12')} txns</span>
         </span>
       )
     case 'rule-006':
       return (
-        <span className="text-[10px] text-gray-400 ml-auto">
+        <span className="text-[10px] text-gray-500 ml-auto">
           Ratio: <span className="font-semibold text-gray-600">&ge;{(getParam(rule, 'p13') * 100).toFixed(0)}%</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Min Inflow: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p14'))}</span>
         </span>
       )
     case 'rule-007':
       return (
-        <span className="text-[10px] text-gray-400 ml-auto">
+        <span className="text-[10px] text-gray-500 ml-auto">
           Growth: <span className="font-semibold text-gray-600">&ge;{getParam(rule, 'p15')}&times;</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Min Txns: <span className="font-semibold text-gray-600">{getParam(rule, 'p16')}</span>
-          <span className="mx-1.5 text-gray-300">|</span>
+          <span className="mx-1.5 text-gray-500">|</span>
           Floor: <span className="font-semibold text-gray-600">{formatCurrency(getParam(rule, 'p17'))}</span>
         </span>
       )
@@ -615,17 +615,17 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
     case 'velocity':
       return (<>
         <td className="px-2.5 py-1.5 text-center">
-          {txn.meetsFloor ? <DollarSign className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+          {txn.meetsFloor ? <DollarSign className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-500 inline" />}
         </td>
         <td className="px-2.5 py-1.5 text-center">
-          {txn.passedFilters ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+          {txn.passedFilters ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-500 inline" />}
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.qualifies ? (
             <span className={`font-mono text-[11px] ${accent}`}>
-              {txn.runningCount}<span className="text-gray-300 mx-0.5">/</span><span className="text-gray-400">{txn.velocityThreshold}</span>
+              {txn.runningCount}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.velocityThreshold}</span>
             </span>
-          ) : <span className="text-gray-300 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">-</span>}
         </td>
       </>)
 
@@ -640,15 +640,15 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
           ) : txn.amount >= txn.reportingThreshold ? (
             <span className="text-red-400 font-mono text-[10px]">&ge;100%</span>
           ) : (
-            <span className="text-gray-300 font-mono text-[10px]">{(txn.nearPct * 100).toFixed(0)}%</span>
+            <span className="text-gray-500 font-mono text-[10px]">{(txn.nearPct * 100).toFixed(0)}%</span>
           )}
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.nearLimit ? (
             <span className={`font-mono text-[11px] ${accent}`}>
-              {txn.nearCount}<span className="text-gray-300 mx-0.5">/</span><span className="text-gray-400">{txn.countTrigger}</span>
+              {txn.nearCount}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.countTrigger}</span>
             </span>
-          ) : <span className="text-gray-300 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">-</span>}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
           {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '-'}
@@ -675,14 +675,14 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
             <span className={`font-mono text-[11px] ${txn.ratioTriggered ? 'text-[#00A99D] font-semibold' : txn.ratio >= txn.ratioThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               {(txn.ratio * 100).toFixed(1)}%
             </span>
-          ) : <span className="text-gray-300 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">-</span>}
         </td>
       </>)
 
     case 'escalating':
       return (<>
         <td className="px-2.5 py-1.5 text-center">
-          {txn.qualifies ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-300 inline" />}
+          {txn.qualifies ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-500 inline" />}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
           {txn.rollingAvg !== null ? formatCurrency(txn.rollingAvg) : '-'}
@@ -695,7 +695,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
             <span className={`font-mono text-[11px] ${isAtOrPast ? 'text-[#00A99D] font-semibold' : txn.growth >= txn.growthThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               &times;{txn.growth.toFixed(2)}
             </span>
-          ) : <span className="text-gray-300 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">-</span>}
         </td>
       </>)
   }
@@ -744,7 +744,7 @@ function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
                 </div>
               </div>
               <div className="flex justify-between text-[10px]">
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   Threshold: <span className="font-semibold text-gray-600">{tc.threshold}{tc.unit ? ` ${tc.unit}` : ''}</span>
                 </span>
                 <span className={tc.exceeded ? 'text-red-500 font-semibold' : 'text-gray-500'}>
@@ -760,7 +760,7 @@ function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
           <span className="text-[11px] font-medium text-gray-700">Lookback Window</span>
           <div className="mt-1 text-[10px] text-gray-500">
             <span className="font-semibold text-gray-600">{rule.lookbackWindowHours}h</span> evaluation period
-            <span className="mx-1.5 text-gray-300">|</span>
+            <span className="mx-1.5 text-gray-500">|</span>
             {formatDate(alert.aggregationWindowStart)} - {formatDate(alert.aggregationWindowEnd)}
           </div>
         </div>

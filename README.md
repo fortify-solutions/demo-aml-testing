@@ -41,7 +41,7 @@ A secondary toolbar appears with results, offering four controls that update all
 Scrolling down through the main content area:
 
 - **Label Composition** — horizontal bar showing the formal / inferred label split. In Formal mode the inferred segment dims with a strikethrough.
-- **Absolute Performance** — six metric cards (Precision, Recall, F1, Alert Volume, SAR Hit Rate, False Positive Rate). In Formal + Inferred mode each card shows a secondary "formal only" value and a visual 90% credible interval bar showing posterior uncertainty.
+- **Absolute Performance** — six metric cards (Precision, Recall, F1, Alert Volume, SAR Hit Rate, False Positive Rate). In Formal + Inferred mode each card shows a secondary "formal only" value and an SVG bell-curve density visualisation of the 90% credible interval (dark teal at the posterior mean, fading to transparent at the tails).
 - **Marginal Performance** — same metrics showing what this rule *uniquely contributes* relative to its peer group. Use the taxonomy toggle (L1 / L2 / L3 / Global) to change scope. Delta rows show improvement (green) or regression (red).
 - **Performance Data Table** — stratified breakdown by country, customer type, product, and channel.
 - **Alert Volume** — area chart of alerts, formal SARs, and inferred SARs over time (marginal view only).
@@ -69,7 +69,7 @@ src/
     ConfigPanel.tsx                Top bar with rule selector, date range, and run button
     ResultsToolbar.tsx             Ground truth, labels, unit, and view toggles
     LabelCompositionBar.tsx        Formal / inferred label split bar
-    AbsolutePerformance.tsx        Metric cards with credible interval visualisation
+    AbsolutePerformance.tsx        Metric cards with SVG bell-curve credible interval density
     MarginalPerformance.tsx        Marginal metrics with taxonomy toggle and delta row
     PerformanceDataTable.tsx       Stratified performance breakdown table
     VolumeChart.tsx                Alert volume area chart over time

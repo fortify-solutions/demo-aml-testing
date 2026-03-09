@@ -22,7 +22,7 @@ function ConfidenceBadge({ confidence }: { confidence: Recommendation['confidenc
   const colors = {
     high: 'text-[#16a34a] bg-[#16a34a]/10',
     medium: 'text-amber-600 bg-amber-600/10',
-    low: 'text-gray-400 bg-black/[0.06]',
+    low: 'text-gray-500 bg-black/[0.06]',
   }
   return (
     <span className={`text-[10px] font-mono uppercase rounded-full px-2 py-0.5 ${colors[confidence]}`}>
@@ -75,7 +75,7 @@ function RecommendationCard({ rec, onHover, onApply }: {
       <div>
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
         >
           <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           Evidence Summary
@@ -89,7 +89,7 @@ function RecommendationCard({ rec, onHover, onApply }: {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="text-[12px] text-gray-400 leading-relaxed mt-2 pl-4 border-l border-(--color-border)">
+              <div className="text-[12px] text-gray-500 leading-relaxed mt-2 pl-4 border-l border-(--color-border)">
                 {rec.evidenceSummary}
               </div>
             </motion.div>
@@ -149,13 +149,13 @@ export function RecommendationsPanel({ recommendations, loading, onHoverRecommen
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Recommendations
         </span>
-        {loading && <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin" />}
+        {loading && <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />}
         {!loading && recommendations.length > 0 && (
-          <span className="text-[10px] text-gray-400 ml-1">
+          <span className="text-[10px] text-gray-500 ml-1">
             {recommendations.length} suggestion{recommendations.length !== 1 ? 's' : ''}
           </span>
         )}
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${sectionExpanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${sectionExpanded ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -175,7 +175,7 @@ export function RecommendationsPanel({ recommendations, loading, onHoverRecommen
                   ))}
                 </div>
               ) : recommendations.length === 0 ? (
-                <div className="text-center py-12 text-[13px] text-gray-300">
+                <div className="text-center py-12 text-[13px] text-gray-500">
                   No recommendations — rule performance looks good across all dimensions.
                 </div>
               ) : (

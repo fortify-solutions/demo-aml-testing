@@ -16,11 +16,11 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   if (!active || !payload) return null
   return (
     <div className="bg-white border border-(--color-border) rounded-lg px-3 py-2 shadow-xl">
-      <div className="text-[10px] text-gray-400 mb-1 font-mono">{label}</div>
+      <div className="text-[10px] text-gray-500 mb-1 font-mono">{label}</div>
       {payload.map((entry, i) => (
         <div key={i} className="flex items-center gap-2 text-[11px]">
           <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-500">{entry.name}:</span>
+          <span className="text-gray-600">{entry.name}:</span>
           <span className="font-mono text-gray-700">{entry.value}</span>
         </div>
       ))}
@@ -67,7 +67,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
           <div className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
             {isATL ? 'Above the Line' : 'Below the Line'}
           </div>
-          <div className="text-[9px] text-gray-400">
+          <div className="text-[9px] text-gray-500">
             {isATL ? 'Entities that triggered the rule' : 'Entities that did not trigger'}
           </div>
         </div>
@@ -75,7 +75,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
 
       <div className="text-[22px] font-mono text-gray-900">
         {segment.count.toLocaleString()}
-        <span className="text-[11px] text-gray-400 ml-1.5">{isATL ? 'alerts' : 'entities'}</span>
+        <span className="text-[11px] text-gray-500 ml-1.5">{isATL ? 'alerts' : 'entities'}</span>
       </div>
 
       {/* SAR Rate */}
@@ -89,7 +89,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
           {(segment.sarRate * 100).toFixed(1)}%
         </div>
         {isSparse && (
-          <div className="text-[10px] text-gray-400 mt-1">No historical labels — inferred only</div>
+          <div className="text-[10px] text-gray-500 mt-1">No historical labels — inferred only</div>
         )}
       </div>
 
@@ -142,16 +142,16 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
   const threshold = buildThresholdDescription(rule)
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
-        <Sliders className="w-3.5 h-3.5 text-gray-400" />
+        <Sliders className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           ATL / BTL Analysis
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -166,7 +166,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
             <div className="px-5 pb-5">
               {/* Threshold definition banner */}
               <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
-                <div className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                <div className="text-[10px] uppercase tracking-wider text-[#00A99D] font-semibold mb-2">
                   Rule Threshold — {rule.name}
                 </div>
                 <div className="space-y-1.5">
@@ -189,7 +189,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
                 {/* Threshold divider */}
                 <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
                   <div className="absolute inset-0 bg-indigo-200/50" />
-                  <div className="absolute text-[9px] uppercase tracking-wider text-indigo-300 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                  <div className="absolute text-[9px] uppercase tracking-wider text-[#00A99D]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
                     Threshold
                   </div>
                 </div>

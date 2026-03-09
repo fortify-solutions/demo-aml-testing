@@ -18,42 +18,109 @@ const METRIC_CONFIG: { key: NumericMetricKey; label: string; format: (v: number)
   { key: 'falsePositiveRate', label: 'False Positive Rate', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
 ]
 
-/** Visual credible interval bar showing the posterior range */
-function CredibleIntervalBar({ value, ci, isRate }: {
+/** Build an SVG path for a Gaussian-like bell curve */
+function buildBellCurvePath(width: number, height: number, meanPct: number, samples = 60): string {
+  // meanPct is 0–100, position of the peak within the SVG
+  const meanX = (meanPct / 100) * width
+  // sigma controls how wide the bell is — use ~30% of width so tails reach edges
+  const sigma = width * 0.28
+  const points: [number, number][] = []
+
+  for (let i = 0; i <= samples; i++) {
+    const x = (i / samples) * width
+    const z = (x - meanX) / sigma
+    const y = Math.exp(-0.5 * z * z)
+    points.push([x, height - y * height])
+  }
+
+  // Build path: move to bottom-left, line up through curve, back to bottom-right
+  let d = `M 0 ${height}`
+  for (const [x, y] of points) {
+    d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`
+  }
+  d += ` L ${width} ${height} Z`
+  return d
+}
+
+/** Visual credible interval showing the posterior as a bell-curve density shape */
+function CredibleIntervalBar({ value, ci, isRate, metricKey }: {
   value: number
   ci: [number, number]
   isRate: boolean
+  metricKey: string
 }) {
   if (isRate) {
-    // Map 0–1 to visual range
     const lo = ci[0] * 100
     const hi = ci[1] * 100
     const point = value * 100
-    // Scale to 0–100% width
+    // Visual range with padding
     const rangeMin = Math.max(0, lo - 5)
     const rangeMax = Math.min(100, hi + 5)
     const span = rangeMax - rangeMin || 1
-    const barLeft = ((lo - rangeMin) / span) * 100
-    const barRight = ((hi - rangeMin) / span) * 100
     const pointPos = ((point - rangeMin) / span) * 100
 
+    // SVG dimensions
+    const svgW = 200
+    const svgH = 28
+    const meanX = (pointPos / 100) * svgW
+    const bellPath = buildBellCurvePath(svgW, svgH, pointPos)
+
+    // CI bar positions for the tick marks
+    const loPos = ((lo - rangeMin) / span) * 100
+    const hiPos = ((hi - rangeMin) / span) * 100
+
     return (
-      <div className="mt-2.5 space-y-1">
-        <div className="relative h-1.5 rounded-full bg-black/[0.04]">
-          {/* CI range bar */}
-          <div
-            className="absolute h-full rounded-full bg-[#00A99D]/20"
-            style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }}
-          />
-          {/* Point estimate */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#00A99D]"
-            style={{ left: `${pointPos}%` }}
-          />
+      <div className="mt-2.5 space-y-0.5">
+        <div className="relative">
+          <svg
+            viewBox={`0 0 ${svgW} ${svgH}`}
+            preserveAspectRatio="none"
+            className="w-full"
+            style={{ height: 28 }}
+          >
+            <defs>
+              <linearGradient id={`bellGrad-${metricKey}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#005f58" stopOpacity="0.85" />
+                <stop offset="40%" stopColor="#00897e" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#00A99D" stopOpacity="0.08" />
+              </linearGradient>
+            </defs>
+            {/* Bell curve fill */}
+            <path d={bellPath} fill={`url(#bellGrad-${metricKey})`} />
+            {/* Point estimate line */}
+            <line
+              x1={meanX}
+              y1={0}
+              x2={meanX}
+              y2={svgH}
+              stroke="#004d47"
+              strokeWidth="1.5"
+              strokeOpacity="0.7"
+            />
+            {/* CI boundary ticks */}
+            <line
+              x1={(loPos / 100) * svgW}
+              y1={svgH - 2}
+              x2={(loPos / 100) * svgW}
+              y2={svgH}
+              stroke="#00A99D"
+              strokeWidth="1"
+              strokeOpacity="0.5"
+            />
+            <line
+              x1={(hiPos / 100) * svgW}
+              y1={svgH - 2}
+              x2={(hiPos / 100) * svgW}
+              y2={svgH}
+              stroke="#00A99D"
+              strokeWidth="1"
+              strokeOpacity="0.5"
+            />
+          </svg>
         </div>
-        <div className="flex justify-between text-[9px] font-mono text-gray-400">
+        <div className="flex justify-between text-[9px] font-mono text-gray-500">
           <span>{lo.toFixed(1)}%</span>
-          <span className="text-[8px] text-gray-300">90% credible interval</span>
+          <span className="text-[9px] text-gray-500">90% credible interval</span>
           <span>{hi.toFixed(1)}%</span>
         </div>
       </div>
@@ -64,8 +131,8 @@ function CredibleIntervalBar({ value, ci, isRate }: {
   const lo = ci[0]
   const hi = ci[1]
   return (
-    <div className="mt-2 text-[10px] font-mono text-gray-400">
-      <span className="text-[8px] text-gray-300 mr-1">90% CI</span>
+    <div className="mt-2 text-[10px] font-mono text-gray-500">
+      <span className="text-[9px] text-gray-500 mr-1">90% CI</span>
       {lo.toLocaleString()} – {hi.toLocaleString()}
     </div>
   )
@@ -76,14 +143,14 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
   const ci = metrics.ci
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
       <div className="flex items-center gap-2 mb-4">
-        <Target className="w-3.5 h-3.5 text-gray-400" />
+        <Target className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Absolute Performance
         </span>
         {ci && (
-          <span className="text-[9px] text-gray-400 font-normal ml-1">
+          <span className="text-[9px] text-gray-500 font-normal ml-1">
             — posterior estimates with 90% credible intervals
           </span>
         )}
@@ -114,7 +181,7 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
                   {mc.format(metrics[mc.key])}
                 </div>
                 {showDual && (
-                  <div className="text-[11px] font-mono text-gray-400 mt-1.5">
+                  <div className="text-[11px] font-mono text-gray-500 mt-1.5">
                     formal only {mc.format(formalMetrics[mc.key])}
                   </div>
                 )}
@@ -123,6 +190,7 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
                     value={metrics[mc.key]}
                     ci={metricCI}
                     isRate={mc.isRate}
+                    metricKey={mc.key}
                   />
                 )}
               </motion.div>

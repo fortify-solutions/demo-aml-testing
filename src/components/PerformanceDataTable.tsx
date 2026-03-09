@@ -24,17 +24,17 @@ export function PerformanceDataTable({ data: stratifiedData }: Props) {
   const data = stratifiedData[dimension] ?? stratifiedData.overall
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       {/* Toggle header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
-        <Table2 className="w-3.5 h-3.5 text-gray-400" />
+        <Table2 className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Performance Data
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -48,7 +48,7 @@ export function PerformanceDataTable({ data: stratifiedData }: Props) {
           >
             {/* Stratification selector */}
             <div className="px-5 pb-3 flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Stratify by</span>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Stratify by</span>
               <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
                 {STRATIFICATION_DIMENSIONS.map(dim => (
                   <button
@@ -57,7 +57,7 @@ export function PerformanceDataTable({ data: stratifiedData }: Props) {
                     className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition-all cursor-pointer ${
                       dimension === dim.id
                         ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-400 hover:text-gray-600'
+                        : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     {dim.label}
