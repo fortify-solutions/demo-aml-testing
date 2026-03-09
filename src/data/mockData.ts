@@ -90,6 +90,43 @@ export const RULES: Rule[] = [
   },
 ]
 
+/** Lightweight rule stubs — no parameters or backtest data, just names for the dropdown */
+const DUMMY_RULES: Rule[] = [
+  // Structuring
+  { id: 'dummy-001', name: 'Round Dollar Deposits', description: '', taxonomy: { l1: 'Structuring', l2: 'Cash Intensive', l3: 'Round Amounts' }, parameters: [], lookbackWindowHours: 72, batchCadenceHours: 24 },
+  { id: 'dummy-002', name: 'Split Wire Transfers', description: '', taxonomy: { l1: 'Structuring', l2: 'One-to-many', l3: 'Wire Splitting' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 24 },
+  { id: 'dummy-003', name: 'Recurring Sub-Threshold ACH', description: '', taxonomy: { l1: 'Structuring', l2: 'Reporting Avoidance', l3: 'ACH Structuring' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+  { id: 'dummy-004', name: 'Sequential Teller Transactions', description: '', taxonomy: { l1: 'Structuring', l2: 'Cash Intensive', l3: 'Teller Sequencing' }, parameters: [], lookbackWindowHours: 24, batchCadenceHours: 12 },
+  { id: 'dummy-005', name: 'Multi-Branch Cash Deposits', description: '', taxonomy: { l1: 'Structuring', l2: 'Cash Intensive', l3: 'Branch Hopping' }, parameters: [], lookbackWindowHours: 48, batchCadenceHours: 24 },
+  // Unusual Activity
+  { id: 'dummy-006', name: 'Sudden High-Value Outbound', description: '', taxonomy: { l1: 'Unusual Activity', l2: 'Amount Patterns', l3: 'Spike Detection' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 12 },
+  { id: 'dummy-007', name: 'Geographic Anomaly Detection', description: '', taxonomy: { l1: 'Unusual Activity', l2: 'Account Behaviour', l3: 'Geo Anomaly' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  { id: 'dummy-008', name: 'After-Hours Transaction Spike', description: '', taxonomy: { l1: 'Unusual Activity', l2: 'Account Behaviour', l3: 'Temporal Anomaly' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 24 },
+  { id: 'dummy-009', name: 'New Payee Velocity', description: '', taxonomy: { l1: 'Unusual Activity', l2: 'Account Behaviour', l3: 'Payee Velocity' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+  { id: 'dummy-010', name: 'Unusual Merchant Category Spend', description: '', taxonomy: { l1: 'Unusual Activity', l2: 'Amount Patterns', l3: 'MCC Anomaly' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  // Layering
+  { id: 'dummy-011', name: 'Pass-Through Account Detection', description: '', taxonomy: { l1: 'Layering', l2: 'Fund Movement', l3: 'Pass-Through' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 12 },
+  { id: 'dummy-012', name: 'Circular Fund Flow', description: '', taxonomy: { l1: 'Layering', l2: 'Fund Movement', l3: 'Circular Flow' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+  { id: 'dummy-013', name: 'Shell Company Intermediary', description: '', taxonomy: { l1: 'Layering', l2: 'Entity Patterns', l3: 'Shell Detection' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  { id: 'dummy-014', name: 'Rapid Account-to-Account Hops', description: '', taxonomy: { l1: 'Layering', l2: 'Fund Movement', l3: 'Account Hopping' }, parameters: [], lookbackWindowHours: 48, batchCadenceHours: 12 },
+  { id: 'dummy-015', name: 'Multi-Jurisdiction Layering', description: '', taxonomy: { l1: 'Layering', l2: 'Fund Movement', l3: 'Cross-Border Layering' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+  // Trade-Based ML
+  { id: 'dummy-016', name: 'Over/Under Invoicing', description: '', taxonomy: { l1: 'Trade-Based ML', l2: 'Invoice Manipulation', l3: 'Price Mismatch' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  { id: 'dummy-017', name: 'Phantom Shipment Detection', description: '', taxonomy: { l1: 'Trade-Based ML', l2: 'Shipment Anomaly', l3: 'Missing Goods' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  { id: 'dummy-018', name: 'Trade Value Anomaly', description: '', taxonomy: { l1: 'Trade-Based ML', l2: 'Invoice Manipulation', l3: 'Value Outlier' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+  { id: 'dummy-019', name: 'Mismatched Trade Partners', description: '', taxonomy: { l1: 'Trade-Based ML', l2: 'Entity Patterns', l3: 'Partner Mismatch' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  // Fraud Overlap
+  { id: 'dummy-020', name: 'Account Takeover Indicators', description: '', taxonomy: { l1: 'Fraud Overlap', l2: 'Access Patterns', l3: 'ATO Detection' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 12 },
+  { id: 'dummy-021', name: 'Synthetic Identity Patterns', description: '', taxonomy: { l1: 'Fraud Overlap', l2: 'Identity', l3: 'Synthetic ID' }, parameters: [], lookbackWindowHours: 720, batchCadenceHours: 24 },
+  { id: 'dummy-022', name: 'Mule Account Network', description: '', taxonomy: { l1: 'Fraud Overlap', l2: 'Network Analysis', l3: 'Mule Detection' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
+]
+
+/** All rules: real + dummy, for the dropdown */
+export const ALL_RULES: Rule[] = [...RULES, ...DUMMY_RULES]
+
+/** IDs of rules that have full backtest data */
+export const RULES_WITH_DATA = new Set(RULES.map(r => r.id))
+
 function generateMarginalVolumeData(): BacktestResult['volumeOverTime'] {
   // Scale factors approximate marginal.alertVolume / absolute.alertVolume per level
   const scales: Record<string, number> = { l1: 0.25, l2: 0.44, l3: 0.62, global: 0.17 }

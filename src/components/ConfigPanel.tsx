@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, ChevronDown, Check, AlertTriangle, Clock, CheckCircle2, Play, Loader2 } from 'lucide-react'
+import { Search, ChevronDown, Check, Play, Loader2 } from 'lucide-react'
 import type { Rule } from '../types'
-import { RULES, RULE_TESTING_STATUS } from '../data/mockData'
+import { ALL_RULES, RULES_WITH_DATA, RULE_TESTING_STATUS } from '../data/mockData'
 
 interface ConfigPanelProps {
   selectedRule: Rule | null
@@ -12,36 +12,6 @@ interface ConfigPanelProps {
   onDateToChange: (v: string) => void
   onRunBacktest: () => void
   isRunning: boolean
-}
-
-function RuleStatusBadge({ ruleId }: { ruleId: string }) {
-  const status = RULE_TESTING_STATUS[ruleId]
-  if (!status) return null
-
-  if (status.status === 'needs_testing') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200/60 rounded-full px-1.5 py-0.5">
-        <AlertTriangle className="w-2.5 h-2.5" />
-        {status.reason}
-      </span>
-    )
-  }
-
-  if (status.status === 'stale') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-orange-600 bg-orange-50 border border-orange-200/60 rounded-full px-1.5 py-0.5">
-        <Clock className="w-2.5 h-2.5" />
-        {status.reason ?? `${status.lastTestedDaysAgo}d ago`}
-      </span>
-    )
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/60 rounded-full px-1.5 py-0.5">
-      <CheckCircle2 className="w-2.5 h-2.5" />
-      {status.lastTestedDaysAgo}d ago
-    </span>
-  )
 }
 
 /** Small dot indicator for the selected rule in the top bar */
@@ -74,18 +44,44 @@ export function ConfigPanel(props: ConfigPanelProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const filteredRules = RULES.filter(r =>
-    r.name.toLowerCase().includes(ruleSearch.toLowerCase()) ||
-    r.taxonomy.l1.toLowerCase().includes(ruleSearch.toLowerCase())
+  const search = ruleSearch.toLowerCase()
+  const filteredRules = ALL_RULES.filter(r =>
+    r.name.toLowerCase().includes(search) ||
+    r.taxonomy.l1.toLowerCase().includes(search) ||
+    r.taxonomy.l2.toLowerCase().includes(search)
   )
 
-  // Sort: needs_testing first, stale second, recently_tested last
-  const sortedRules = [...filteredRules].sort((a, b) => {
-    const order = { needs_testing: 0, stale: 1, recently_tested: 2 }
-    const sa = RULE_TESTING_STATUS[a.id]?.status ?? 'recently_tested'
-    const sb = RULE_TESTING_STATUS[b.id]?.status ?? 'recently_tested'
-    return order[sa] - order[sb]
+  // Group by L1 → L2 taxonomy
+  const L1_ORDER = ['Structuring', 'Unusual Activity', 'Layering', 'Trade-Based ML', 'Fraud Overlap']
+  type L2Group = { l1: string; l2: string; rules: Rule[] }
+  const l2Map = new Map<string, L2Group>()
+  for (const rule of filteredRules) {
+    const key = `${rule.taxonomy.l1}::${rule.taxonomy.l2}`
+    if (!l2Map.has(key)) l2Map.set(key, { l1: rule.taxonomy.l1, l2: rule.taxonomy.l2, rules: [] })
+    l2Map.get(key)!.rules.push(rule)
+  }
+  // Sort rules within each L2 group: real first, then alphabetical
+  for (const group of l2Map.values()) {
+    group.rules.sort((a, b) => {
+      const aReal = RULES_WITH_DATA.has(a.id)
+      const bReal = RULES_WITH_DATA.has(b.id)
+      if (aReal !== bReal) return aReal ? -1 : 1
+      return a.name.localeCompare(b.name)
+    })
+  }
+  // Sort groups: by L1 order, then L2 alphabetical within each L1
+  const sortedL2Groups = [...l2Map.values()].sort((a, b) => {
+    const aL1 = L1_ORDER.indexOf(a.l1) === -1 ? 99 : L1_ORDER.indexOf(a.l1)
+    const bL1 = L1_ORDER.indexOf(b.l1) === -1 ? 99 : L1_ORDER.indexOf(b.l1)
+    if (aL1 !== bL1) return aL1 - bL1
+    return a.l2.localeCompare(b.l2)
   })
+  // Track which L2 groups are the first in their L1 (to show L1 header)
+  const firstL2ForL1 = new Set<string>()
+  const seenL1 = new Set<string>()
+  for (const g of sortedL2Groups) {
+    if (!seenL1.has(g.l1)) { firstL2ForL1.add(`${g.l1}::${g.l2}`); seenL1.add(g.l1) }
+  }
 
   const canRun = selectedRule && dateFrom && dateTo && !isRunning
 
@@ -128,29 +124,42 @@ export function ConfigPanel(props: ConfigPanelProps) {
                 />
               </div>
             </div>
-            <div className="max-h-[320px] overflow-y-auto py-1">
-              {sortedRules.map(rule => (
-                <button
-                  key={rule.id}
-                  onClick={() => { onSelectRule(rule); setRuleDropdownOpen(false); setRuleSearch('') }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-black/[0.04] transition-colors cursor-pointer"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] text-gray-700 truncate">{rule.name}</span>
-                      <span className="text-[9px] font-mono text-gray-400 bg-black/[0.04] rounded-full px-1.5 py-0.5 shrink-0">
-                        {rule.taxonomy.l1}
-                      </span>
+            <div className="max-h-[400px] overflow-y-auto py-1">
+              {sortedL2Groups.map(({ l1, l2, rules }) => {
+                const showL1 = firstL2ForL1.has(`${l1}::${l2}`)
+                return (
+                  <div key={`${l1}::${l2}`}>
+                    {showL1 && (
+                      <div className="px-3 pt-3 pb-0.5 text-[10px] uppercase tracking-wider text-gray-600 font-bold border-t border-(--color-border) first:border-t-0">
+                        {l1}
+                      </div>
+                    )}
+                    <div className="px-3 pt-1.5 pb-1 text-[9px] text-gray-400 font-medium">
+                      {l2}
                     </div>
-                    <div className="mt-1">
-                      <RuleStatusBadge ruleId={rule.id} />
-                    </div>
+                    {rules.map(rule => {
+                      const hasData = RULES_WITH_DATA.has(rule.id)
+                      return (
+                        <button
+                          key={rule.id}
+                          onClick={() => { onSelectRule(rule); setRuleDropdownOpen(false); setRuleSearch('') }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] transition-colors cursor-pointer"
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${hasData ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[12px] text-gray-700 truncate block">
+                              {rule.name}
+                            </span>
+                          </div>
+                          {selectedRule?.id === rule.id && (
+                            <Check className="w-3 h-3 text-[#00A99D] shrink-0" />
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
-                  {selectedRule?.id === rule.id && (
-                    <Check className="w-3 h-3 text-[#00A99D] shrink-0" />
-                  )}
-                </button>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

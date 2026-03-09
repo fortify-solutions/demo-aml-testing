@@ -15,11 +15,7 @@ The dev server starts at `http://localhost:5173`.
 
 ### 1. Select a rule
 
-Open the **rule dropdown** in the top bar and pick one of the seven mock rules. Rules are sorted by testing priority — rules needing testing (new, changed, or stale) appear first with status badges. Taxonomy tags (L1 / L2 / L3) appear as pills next to the selector on wider screens.
-
-Available rules span several AML typologies:
-- High Velocity Cash Deposits, Dormant Account Reactivation, Large International Wire Transfers, Unusual Currency Exchange Patterns (original rules)
-- Sub-CTR Structuring, Rapid Fund Movement / Layering, Escalating Transaction Amounts (stateful rules with per-rule transaction state tracking)
+Open the **rule dropdown** in the top bar. Rules are organised by typology taxonomy — grouped first by L1 category (Structuring, Unusual Activity, Layering, Trade-Based ML, Fraud Overlap) then by L2 sub-category. The dropdown contains ~29 rules; 7 have full backtest data (green dot) while the rest are placeholder names for demo purposes (amber dot). Taxonomy tags (L1 / L2 / L3) appear as pills next to the selector on wider screens. Use the search box to filter by rule name or taxonomy.
 
 ### 2. Configure and run
 

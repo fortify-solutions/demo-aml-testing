@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Rule, UnitOfAnalysis, GroundTruth, TaxonomyLevel, BacktestResult, Recommendation, PerformanceView, LabelConfidence } from './types'
-import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE } from './data/mockData'
+import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE, RULES_WITH_DATA, RULES } from './data/mockData'
 import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/computeResults'
 import { ConfigPanel } from './components/ConfigPanel'
 import { ResultsToolbar } from './components/ResultsToolbar'
@@ -44,6 +44,10 @@ export default function App() {
   // labelMode is now driven by the label confidence toggle
   const labelMode = labelConfidence === 'formal_inferred' ? 'formal_inferred' as const : 'formal' as const
 
+  // For dummy rules without data, fall back to rule-001's data
+  const dataRuleId = selectedRule && RULES_WITH_DATA.has(selectedRule.id) ? selectedRule.id : RULES[0].id
+  const dataRule = selectedRule && RULES_WITH_DATA.has(selectedRule.id) ? selectedRule : RULES[0]
+
   const handleRunBacktest = useCallback(() => {
     setRunState('loading')
     setRecs([])
@@ -55,11 +59,11 @@ export default function App() {
       setRunState('results')
 
       setTimeout(() => {
-        setRecs(RECOMMENDATIONS_BY_RULE[selectedRule?.id ?? ''] ?? [])
+        setRecs(RECOMMENDATIONS_BY_RULE[dataRuleId] ?? [])
         setRecsLoading(false)
       }, 1800)
     }, 1500)
-  }, [selectedRule])
+  }, [dataRuleId])
 
   const handleApplyRecommendation = useCallback((rec: Recommendation) => {
     console.log('Apply recommendation:', rec.id, rec)
@@ -207,17 +211,17 @@ export default function App() {
                   )}
 
                   <AlertExplorer
-                    alerts={MOCK_ALERTS_BY_RULE[selectedRule!.id] ?? []}
+                    alerts={MOCK_ALERTS_BY_RULE[dataRuleId] ?? []}
                     performanceView={performanceView}
                     taxonomyLevel={taxonomyLevel}
-                    rule={selectedRule!}
+                    rule={dataRule}
                   />
 
                   <ATLBTLAnalysis
                     atl={activeResult.atl}
                     btl={activeResult.btl}
                     labelMode={labelMode}
-                    rule={selectedRule!}
+                    rule={dataRule}
                   />
 
                   <RecommendationsPanel
