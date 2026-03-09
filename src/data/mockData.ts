@@ -698,30 +698,142 @@ function generateMockAlerts(rule: Rule, count: number): AlertRecord[] {
       }
     })
 
-    // Generate nested transactions
-    // Amounts are biased so ~65% exceed the amount_floor ($3,000) to create
-    // a realistic velocity buildup toward the threshold
-    const amountFloor = 3000
-    const numTxns = 5 + Math.floor(rand() * 14)
+    // Generate nested transactions — rule-aware so trigger always fires
     const transactions: TransactionRecord[] = []
-    for (let t = 0; t < numTxns; t++) {
-      const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
-      // ~65% of transactions exceed the floor, ~35% fall below
-      const aboveFloor = rand() < 0.65
-      const txnAmount = aboveFloor
-        ? Math.round((amountFloor + rand() * 12000) * 100) / 100   // $3,000 – $15,000
-        : Math.round((200 + rand() * 2500) * 100) / 100             // $200 – $2,700
 
-      transactions.push({
-        id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
-        date: txnTime.toISOString().split('T')[0],
-        amount: txnAmount,
-        currency: 'USD',
-        type: pick(TXN_TYPES),
-        counterparty: pick(COUNTERPARTIES),
-        channel: pick(CHANNELS),
-        passedFilters: rand() > 0.15,
-      })
+    if (rule.id === 'rule-001') {
+      // High Velocity Cash Deposits: need ≥ p1 qualifying txns above amount_floor (p2)
+      const amountFloor = 3000
+      const velocityThreshold = typeof rule.parameters.find(p => p.id === 'p1')?.currentValue === 'number'
+        ? (rule.parameters.find(p => p.id === 'p1')!.currentValue as number) : 10
+      const qualifyingNeeded = velocityThreshold + 1 + Math.floor(rand() * 4)
+      const nonQualifying = 2 + Math.floor(rand() * 5)
+      const numTxns = qualifyingNeeded + nonQualifying
+      let placed = 0
+      for (let t = 0; t < numTxns; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        const shouldQualify = placed < qualifyingNeeded
+        if (shouldQualify) placed++
+        transactions.push({
+          id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: shouldQualify
+            ? Math.round((amountFloor + rand() * 12000) * 100) / 100
+            : Math.round((200 + rand() * 2500) * 100) / 100,
+          currency: 'USD',
+          type: pick(TXN_TYPES),
+          counterparty: pick(COUNTERPARTIES),
+          channel: pick(CHANNELS),
+          passedFilters: shouldQualify ? true : rand() > 0.3,
+        })
+      }
+    } else if (rule.id === 'rule-002') {
+      // Rapid Cross-Border Transfers: need ≥ p4 distinct counterparties (beneficiaries)
+      const benefThreshold = typeof rule.parameters.find(p => p.id === 'p4')?.currentValue === 'number'
+        ? (rule.parameters.find(p => p.id === 'p4')!.currentValue as number) : 5
+      const distinctNeeded = benefThreshold + 1 + Math.floor(rand() * 3)
+      const extraTxns = 3 + Math.floor(rand() * 5)
+      // First, place one txn per distinct counterparty
+      const shuffled = [...COUNTERPARTIES].sort(() => rand() - 0.5)
+      for (let t = 0; t < distinctNeeded && t < shuffled.length; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        transactions.push({
+          id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: Math.round((5000 + rand() * 30000) * 100) / 100,
+          currency: 'USD',
+          type: 'Wire Transfer',
+          counterparty: shuffled[t],
+          channel: pick(CHANNELS),
+          passedFilters: true,
+        })
+      }
+      // Then add a few repeats / noise
+      for (let t = 0; t < extraTxns; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        transactions.push({
+          id: `TXN-${String(i * 100 + distinctNeeded + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: Math.round((1000 + rand() * 8000) * 100) / 100,
+          currency: 'USD',
+          type: pick(TXN_TYPES),
+          counterparty: pick(COUNTERPARTIES),
+          channel: pick(CHANNELS),
+          passedFilters: rand() > 0.2,
+        })
+      }
+    } else if (rule.id === 'rule-003') {
+      // Dormant Account Reactivation: need at least one txn ≥ p7 ($25K)
+      const reactivationAmount = typeof rule.parameters.find(p => p.id === 'p7')?.currentValue === 'number'
+        ? (rule.parameters.find(p => p.id === 'p7')!.currentValue as number) : 25000
+      const numTxns = 6 + Math.floor(rand() * 8)
+      // Place 1-2 high-value reactivation transactions
+      const highValueCount = 1 + Math.floor(rand() * 2)
+      for (let t = 0; t < numTxns; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        const isHighValue = t < highValueCount
+        transactions.push({
+          id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: isHighValue
+            ? Math.round((reactivationAmount + rand() * 30000) * 100) / 100
+            : Math.round((500 + rand() * 8000) * 100) / 100,
+          currency: 'USD',
+          type: pick(TXN_TYPES),
+          counterparty: pick(COUNTERPARTIES),
+          channel: pick(CHANNELS),
+          passedFilters: isHighValue ? true : rand() > 0.15,
+        })
+      }
+    } else if (rule.id === 'rule-004') {
+      // Remittance Fan-Out: need ≥ p8 distinct counterparties (senders)
+      const senderThreshold = typeof rule.parameters.find(p => p.id === 'p8')?.currentValue === 'number'
+        ? (rule.parameters.find(p => p.id === 'p8')!.currentValue as number) : 8
+      const distinctNeeded = senderThreshold + 1 + Math.floor(rand() * 3)
+      const extraTxns = 2 + Math.floor(rand() * 4)
+      const shuffled = [...COUNTERPARTIES].sort(() => rand() - 0.5)
+      for (let t = 0; t < distinctNeeded && t < shuffled.length; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        transactions.push({
+          id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: Math.round((2000 + rand() * 15000) * 100) / 100,
+          currency: 'USD',
+          type: 'Wire Transfer',
+          counterparty: shuffled[t],
+          channel: pick(CHANNELS),
+          passedFilters: true,
+        })
+      }
+      for (let t = 0; t < extraTxns; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        transactions.push({
+          id: `TXN-${String(i * 100 + distinctNeeded + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: Math.round((500 + rand() * 5000) * 100) / 100,
+          currency: 'USD',
+          type: pick(TXN_TYPES),
+          counterparty: pick(COUNTERPARTIES),
+          channel: pick(CHANNELS),
+          passedFilters: rand() > 0.2,
+        })
+      }
+    } else {
+      // Fallback: generic transaction generation
+      const numTxns = 8 + Math.floor(rand() * 10)
+      for (let t = 0; t < numTxns; t++) {
+        const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
+        transactions.push({
+          id: `TXN-${String(i * 100 + t).padStart(6, '0')}`,
+          date: txnTime.toISOString().split('T')[0],
+          amount: Math.round((1000 + rand() * 15000) * 100) / 100,
+          currency: 'USD',
+          type: pick(TXN_TYPES),
+          counterparty: pick(COUNTERPARTIES),
+          channel: pick(CHANNELS),
+          passedFilters: rand() > 0.15,
+        })
+      }
     }
     transactions.sort((a, b) => b.date.localeCompare(a.date))
 
@@ -784,23 +896,29 @@ function generateStructuringAlerts(rule: Rule, count: number): AlertRecord[] {
     if (marginalRoll < 0.22) marginalAtLevel.push('l1')
     if (marginalRoll < 0.14) marginalAtLevel.push('global')
 
-    // Generate transactions: mix of near-$10K deposits and smaller ones
-    const numTxns = 8 + Math.floor(rand() * 10)
+    // Generate transactions: guarantee ≥ count_trigger (p12=5) near-threshold deposits
+    const countTrigger = typeof rule.parameters.find(p => p.id === 'p12')?.currentValue === 'number'
+      ? (rule.parameters.find(p => p.id === 'p12')!.currentValue as number) : 5
+    const nearNeeded = countTrigger + 1 + Math.floor(rand() * 3)
+    const otherTxns = 3 + Math.floor(rand() * 5)
+    const numTxns = nearNeeded + otherTxns
     const transactions: TransactionRecord[] = []
     let totalAmount = 0
+    let nearPlaced = 0
     for (let t = 0; t < numTxns; t++) {
       const txnTime = new Date(windowStart.getTime() + rand() * (windowEnd.getTime() - windowStart.getTime()))
       let txnAmount: number
-      const roll = rand()
-      if (roll < 0.50) {
+      if (nearPlaced < nearNeeded) {
         // Near-threshold: $8,000 – $9,950 (just under $10K)
         txnAmount = Math.round((8000 + rand() * 1950) * 100) / 100
-      } else if (roll < 0.75) {
-        // Small deposits: $500 – $4,000
-        txnAmount = Math.round((500 + rand() * 3500) * 100) / 100
+        nearPlaced++
       } else {
-        // Medium deposits: $4,000 – $7,999
-        txnAmount = Math.round((4000 + rand() * 3999) * 100) / 100
+        const roll = rand()
+        if (roll < 0.5) {
+          txnAmount = Math.round((500 + rand() * 3500) * 100) / 100
+        } else {
+          txnAmount = Math.round((4000 + rand() * 3999) * 100) / 100
+        }
       }
       totalAmount += txnAmount
       transactions.push({
@@ -811,7 +929,8 @@ function generateStructuringAlerts(rule: Rule, count: number): AlertRecord[] {
         type: rand() < 0.7 ? 'Cash Deposit' : pick(['Check', 'Cash Deposit', 'ACH']),
         counterparty: pick(COUNTERPARTIES),
         channel: pick(['Branch', 'ATM', 'Branch', 'Branch']),
-        passedFilters: rand() > 0.10,
+        // Near-threshold txns always pass filters
+        passedFilters: nearPlaced <= nearNeeded ? true : rand() > 0.10,
       })
     }
     transactions.sort((a, b) => b.date.localeCompare(a.date))
@@ -879,29 +998,31 @@ function generateRapidMovementAlerts(rule: Rule, count: number): AlertRecord[] {
     if (marginalRoll < 0.12) marginalAtLevel.push('global')
 
     // Generate transactions: inflows first, then outflows
-    // Pattern: several large inflows followed by outflows draining the account
+    // Must cross: outflow/inflow ≥ 85% (p13) and cumul inflow ≥ $25K (p14)
     const numTxns = 10 + Math.floor(rand() * 8)
     const transactions: TransactionRecord[] = []
     let totalAmount = 0
-    const inflowPhase = Math.floor(numTxns * (0.35 + rand() * 0.2)) // ~35-55% are inflows first
+    const inflowPhase = Math.floor(numTxns * (0.35 + rand() * 0.15)) // ~35-50% are inflows first
+    // Target total inflow well above $25K and total outflow ≥ 90% of inflow
+    const targetInflow = 30000 + rand() * 40000
+    const inflowPerTxn = targetInflow / inflowPhase
+    const outflowTxns = numTxns - inflowPhase
+    const targetOutflow = targetInflow * (0.88 + rand() * 0.15) // 88-103% of inflow
+    const outflowPerTxn = targetOutflow / outflowTxns
 
     for (let t = 0; t < numTxns; t++) {
-      // Spread transactions across window with inflows earlier
       const progress = t / numTxns
       const timeOffset = progress * (windowEnd.getTime() - windowStart.getTime())
-      const jitter = (rand() - 0.5) * 3600000 * 4 // ±4h jitter
+      const jitter = (rand() - 0.5) * 3600000 * 4
       const txnTime = new Date(windowStart.getTime() + timeOffset + jitter)
       const clampedTime = new Date(Math.max(windowStart.getTime(), Math.min(windowEnd.getTime(), txnTime.getTime())))
 
-      const isInflow = t < inflowPhase || rand() < 0.15
+      const isInflow = t < inflowPhase
       const direction: 'inflow' | 'outflow' = isInflow ? 'inflow' : 'outflow'
 
-      let txnAmount: number
-      if (isInflow) {
-        txnAmount = Math.round((5000 + rand() * 20000) * 100) / 100
-      } else {
-        txnAmount = Math.round((3000 + rand() * 18000) * 100) / 100
-      }
+      const txnAmount = isInflow
+        ? Math.round((inflowPerTxn * (0.7 + rand() * 0.6)) * 100) / 100
+        : Math.round((outflowPerTxn * (0.6 + rand() * 0.8)) * 100) / 100
       totalAmount += txnAmount
 
       transactions.push({
@@ -912,7 +1033,7 @@ function generateRapidMovementAlerts(rule: Rule, count: number): AlertRecord[] {
         type: isInflow ? pick(INFLOW_TYPES) : pick(OUTFLOW_TYPES),
         counterparty: pick(COUNTERPARTIES),
         channel: pick(CHANNELS),
-        passedFilters: rand() > 0.08,
+        passedFilters: true, // all pass to ensure trigger fires
         direction,
       })
     }
@@ -981,12 +1102,18 @@ function generateEscalatingAlerts(rule: Rule, count: number): AlertRecord[] {
     if (marginalRoll < 0.15) marginalAtLevel.push('global')
 
     // Generate transactions with escalating amounts over time
-    const numTxns = 10 + Math.floor(rand() * 10)
+    // Need ≥ p16 (6) qualifying txns above p17 ($2K) with growth ≥ p15 (1.5×)
+    const minTxns = typeof rule.parameters.find(p => p.id === 'p16')?.currentValue === 'number'
+      ? (rule.parameters.find(p => p.id === 'p16')!.currentValue as number) : 6
+    const qualifyingNeeded = minTxns + 2 + Math.floor(rand() * 4)
+    const noiseTxns = 2 + Math.floor(rand() * 4)
+    const numTxns = qualifyingNeeded + noiseTxns
     const transactions: TransactionRecord[] = []
     let totalAmount = 0
-    const baseAmount = 1500 + rand() * 2000 // starting range $1,500 – $3,500
-    const growthPerTxn = 1.08 + rand() * 0.15 // 8-23% growth per qualifying txn
+    const baseAmount = 2200 + rand() * 1500 // starting range $2,200 – $3,700 (always above $2K floor)
+    const growthPerTxn = 1.12 + rand() * 0.15 // 12-27% growth per qualifying txn
 
+    let qualifyingPlaced = 0
     for (let t = 0; t < numTxns; t++) {
       const progress = t / numTxns
       const timeOffset = progress * (windowEnd.getTime() - windowStart.getTime())
@@ -995,10 +1122,12 @@ function generateEscalatingAlerts(rule: Rule, count: number): AlertRecord[] {
       const clampedTime = new Date(Math.max(windowStart.getTime(), Math.min(windowEnd.getTime(), txnTime.getTime())))
 
       let txnAmount: number
-      if (rand() < 0.75) {
+      const isQualifying = qualifyingPlaced < qualifyingNeeded
+      if (isQualifying) {
         // Escalating qualifying transaction
-        const escalatedBase = baseAmount * Math.pow(growthPerTxn, t)
-        txnAmount = Math.round((escalatedBase * (0.85 + rand() * 0.3)) * 100) / 100
+        const escalatedBase = baseAmount * Math.pow(growthPerTxn, qualifyingPlaced)
+        txnAmount = Math.round((escalatedBase * (0.9 + rand() * 0.2)) * 100) / 100
+        qualifyingPlaced++
       } else {
         // Noise: small non-qualifying transaction
         txnAmount = Math.round((200 + rand() * 1500) * 100) / 100
@@ -1013,7 +1142,8 @@ function generateEscalatingAlerts(rule: Rule, count: number): AlertRecord[] {
         type: pick(TXN_TYPES),
         counterparty: pick(COUNTERPARTIES),
         channel: pick(CHANNELS),
-        passedFilters: rand() > 0.10,
+        // Qualifying txns always pass filters
+        passedFilters: isQualifying ? true : rand() > 0.3,
       })
     }
     transactions.sort((a, b) => b.date.localeCompare(a.date))
