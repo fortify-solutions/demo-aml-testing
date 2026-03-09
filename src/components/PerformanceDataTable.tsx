@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Table2, ChevronDown } from 'lucide-react'
-import type { StratificationDimension, PerformanceMetrics } from '../types'
+import type { StratificationDimension, NumericMetricKey, PerformanceMetrics } from '../types'
 import { STRATIFICATION_DIMENSIONS } from '../data/mockData'
 
 interface Props {
@@ -98,7 +98,7 @@ export function PerformanceDataTable({ data: stratifiedData }: Props) {
                         <td className="px-5 py-2 text-gray-700 font-medium">{row.label}</td>
                         <td className="px-3 py-2 text-right font-mono text-gray-500">{row.count.toLocaleString()}</td>
                         {METRIC_COLS.map(col => {
-                          const val = row.metrics[col.key as keyof typeof row.metrics]
+                          const val = row.metrics[col.key as NumericMetricKey]
                           return (
                             <td key={col.key} className="px-3 py-2 text-right font-mono text-gray-700">
                               {col.format(val)}

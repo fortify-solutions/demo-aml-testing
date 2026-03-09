@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { GitBranch } from 'lucide-react'
-import type { PerformanceMetrics, TaxonomyLevel, LabelMode } from '../types'
+import type { PerformanceMetrics, TaxonomyLevel, LabelMode, NumericMetricKey } from '../types'
 import { MARGINAL_PEER_COUNTS } from '../data/mockData'
 import { MarginalContributionChart } from './MarginalContributionChart'
 
@@ -14,7 +14,7 @@ interface Props {
   labelMode: LabelMode
 }
 
-const METRIC_CONFIG: { key: keyof PerformanceMetrics; label: string; format: (v: number) => string; isRate: boolean; invertColor?: boolean }[] = [
+const METRIC_CONFIG: { key: NumericMetricKey; label: string; format: (v: number) => string; isRate: boolean; invertColor?: boolean }[] = [
   { key: 'precision', label: 'Precision', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
   { key: 'recall', label: 'Recall', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
   { key: 'f1', label: 'F1', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
@@ -30,7 +30,7 @@ const LEVEL_LABELS: Record<TaxonomyLevel, string> = {
   global: 'Global',
 }
 
-function formatDelta(val: number, key: keyof PerformanceMetrics): { text: string; color: string } {
+function formatDelta(val: number, key: NumericMetricKey): { text: string; color: string } {
   if (key === 'alertVolume') {
     const sign = val > 0 ? '+' : ''
     return { text: `${sign}${val.toLocaleString()}`, color: 'text-gray-400' }

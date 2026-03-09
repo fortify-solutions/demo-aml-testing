@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Target } from 'lucide-react'
-import type { PerformanceMetrics, PerformanceMetricsCI, LabelMode } from '../types'
+import type { PerformanceMetrics, PerformanceMetricsCI, LabelMode, NumericMetricKey } from '../types'
 
 interface Props {
   metrics: PerformanceMetrics
@@ -9,7 +9,7 @@ interface Props {
   highlightedMetrics?: Set<string>
 }
 
-const METRIC_CONFIG: { key: keyof PerformanceMetrics; label: string; format: (v: number) => string; isRate: boolean }[] = [
+const METRIC_CONFIG: { key: NumericMetricKey; label: string; format: (v: number) => string; isRate: boolean }[] = [
   { key: 'precision', label: 'Precision', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
   { key: 'recall', label: 'Recall', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },
   { key: 'f1', label: 'F1', format: v => `${(v * 100).toFixed(1)}%`, isRate: true },

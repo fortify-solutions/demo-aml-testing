@@ -52,6 +52,9 @@ export interface PerformanceMetrics {
   ci?: PerformanceMetricsCI
 }
 
+/** Numeric-only keys of PerformanceMetrics (excludes `ci`) */
+export type NumericMetricKey = 'precision' | 'recall' | 'f1' | 'alertVolume' | 'sarHitRate' | 'falsePositiveRate'
+
 /** 90% credible intervals for each metric — only present when inferred labels are used */
 export interface PerformanceMetricsCI {
   precision: [number, number]

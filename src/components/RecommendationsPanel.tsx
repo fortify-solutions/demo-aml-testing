@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, ChevronDown, Loader2, ArrowRight } from 'lucide-react'
-import type { Recommendation, PerformanceMetrics } from '../types'
+import type { Recommendation, NumericMetricKey } from '../types'
 
 interface Props {
   recommendations: Recommendation[]
@@ -10,7 +10,7 @@ interface Props {
   onApply: (rec: Recommendation) => void
 }
 
-const COMPARE_METRICS: { key: keyof PerformanceMetrics; label: string; format: (v: number) => string }[] = [
+const COMPARE_METRICS: { key: NumericMetricKey; label: string; format: (v: number) => string }[] = [
   { key: 'precision', label: 'Precision', format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'recall', label: 'Recall', format: v => `${(v * 100).toFixed(1)}%` },
   { key: 'f1', label: 'F1', format: v => `${(v * 100).toFixed(1)}%` },

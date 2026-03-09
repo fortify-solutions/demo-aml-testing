@@ -211,7 +211,6 @@ export default function App() {
                     performanceView={performanceView}
                     taxonomyLevel={taxonomyLevel}
                     rule={selectedRule!}
-                    unitOfAnalysis={unitOfAnalysis}
                   />
 
                   <ATLBTLAnalysis

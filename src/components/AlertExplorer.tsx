@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react'
-import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, UnitOfAnalysis, TransactionRecord } from '../types'
+import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, TransactionRecord } from '../types'
 
 interface Props {
   alerts: AlertRecord[]
   performanceView: PerformanceView
   taxonomyLevel: TaxonomyLevel
   rule: Rule
-  unitOfAnalysis: UnitOfAnalysis
 }
 
 type SortKey = 'entityId' | 'entityName' | 'alertDate' | 'transactionCount' | 'totalAmount' | 'alertScore' | 'sarFiled'
@@ -24,7 +23,7 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, unitOfAnalysis }: Props) {
+export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('alertDate')

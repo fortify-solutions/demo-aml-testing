@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import type { PerformanceMetrics } from '../types'
+import type { PerformanceMetrics, NumericMetricKey } from '../types'
 import { CHART_COLORS } from '../theme'
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
   peerCount: number
 }
 
-const RATE_METRICS: { key: keyof PerformanceMetrics; label: string }[] = [
+const RATE_METRICS: { key: NumericMetricKey; label: string }[] = [
   { key: 'recall', label: 'Recall' },
   { key: 'precision', label: 'Precision' },
   { key: 'f1', label: 'F1' },
