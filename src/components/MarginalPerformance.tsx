@@ -135,7 +135,19 @@ export function MarginalPerformance({ marginalData, baselineData, absoluteData, 
             {METRIC_CONFIG.map(mc => {
               const marginalVal = metrics[mc.key]
               const baselineVal = baseline[mc.key]
-              const delta = formatDelta(marginalVal, mc.key)
+              // FPR: compute the actual ensemble shift rather than treating the rule's own FPR as a delta
+              // weighted combined FPR = (baseline_FP + rule_FP) / total_alerts - baseline_FPR
+              const effectiveVal = mc.key === 'falsePositiveRate'
+                ? (() => {
+                    const baselineAlerts = baseline.alertVolume
+                    const ruleAlerts = metrics.alertVolume
+                    const totalAlerts = baselineAlerts + ruleAlerts
+                    if (totalAlerts === 0) return 0
+                    const combinedFPR = (baselineAlerts * baselineVal + ruleAlerts * marginalVal) / totalAlerts
+                    return combinedFPR - baselineVal
+                  })()
+                : marginalVal
+              const delta = formatDelta(effectiveVal, mc.key)
 
               return (
                 <div

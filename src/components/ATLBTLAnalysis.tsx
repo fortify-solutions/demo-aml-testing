@@ -10,6 +10,7 @@ interface Props {
   btl: PopulationSegment
   labelMode: LabelMode
   rule: Rule
+  inTabContainer?: boolean
 }
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
@@ -137,9 +138,48 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
   )
 }
 
-export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
+export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Props) {
   const [expanded, setExpanded] = useState(false)
   const threshold = buildThresholdDescription(rule)
+
+  const content = (
+    <div className="px-5 py-5">
+      {/* Threshold definition banner */}
+      <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
+        <div className="text-[10px] uppercase tracking-wider text-[#00A99D] font-semibold mb-2">
+          Rule Threshold — {rule.name}
+        </div>
+        <div className="space-y-1.5">
+          {threshold.conditions.map((c, i) => (
+            <div key={i} className="flex items-baseline gap-2">
+              <span className="text-[12px] font-mono font-semibold text-indigo-600">{c.value}</span>
+              <span className="text-[11px] text-gray-500">{c.label}</span>
+            </div>
+          ))}
+          <div className="flex items-baseline gap-2">
+            <span className="text-[12px] font-mono font-semibold text-indigo-600">{threshold.window}</span>
+            <span className="text-[11px] text-gray-500">Evaluation period</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-0">
+        <SegmentColumn segment={atl} side="left" labelMode={labelMode} />
+
+        {/* Threshold divider */}
+        <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
+          <div className="absolute inset-0 bg-indigo-200/50" />
+          <div className="absolute text-[9px] uppercase tracking-wider text-[#00A99D]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+            Threshold
+          </div>
+        </div>
+
+        <SegmentColumn segment={btl} side="right" labelMode={labelMode} />
+      </div>
+    </div>
+  )
+
+  if (inTabContainer) return content
 
   return (
     <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
@@ -153,7 +193,6 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>
-
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -163,40 +202,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule }: Props) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5">
-              {/* Threshold definition banner */}
-              <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
-                <div className="text-[10px] uppercase tracking-wider text-[#00A99D] font-semibold mb-2">
-                  Rule Threshold — {rule.name}
-                </div>
-                <div className="space-y-1.5">
-                  {threshold.conditions.map((c, i) => (
-                    <div key={i} className="flex items-baseline gap-2">
-                      <span className="text-[12px] font-mono font-semibold text-indigo-600">{c.value}</span>
-                      <span className="text-[11px] text-gray-500">{c.label}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[12px] font-mono font-semibold text-indigo-600">{threshold.window}</span>
-                    <span className="text-[11px] text-gray-500">Evaluation period</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-0">
-                <SegmentColumn segment={atl} side="left" labelMode={labelMode} />
-
-                {/* Threshold divider */}
-                <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
-                  <div className="absolute inset-0 bg-indigo-200/50" />
-                  <div className="absolute text-[9px] uppercase tracking-wider text-[#00A99D]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                    Threshold
-                  </div>
-                </div>
-
-                <SegmentColumn segment={btl} side="right" labelMode={labelMode} />
-              </div>
-            </div>
+            {content}
           </motion.div>
         )}
       </AnimatePresence>

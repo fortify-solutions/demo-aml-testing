@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
-import type { GroundTruth, PerformanceView, LabelConfidence, UnitOfAnalysis } from '../types'
+import type { GroundTruth, LabelConfidence, UnitOfAnalysis, PerformanceView } from '../types'
 import { CASE_LEVELS } from '../data/mockData'
 
 interface Props {
@@ -37,10 +37,10 @@ function GroundTruthSelector({ value, onChange }: { value: GroundTruth; onChange
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg bg-black/[0.04] border border-(--color-border) px-2.5 py-1.5 text-[11px] text-gray-700 hover:bg-black/[0.06] transition-all cursor-pointer"
+        className="flex items-center gap-2 rounded-lg bg-gray-100 border border-gray-200 px-4 py-2 text-[12px] text-gray-800 hover:bg-gray-200 transition-all cursor-pointer"
       >
-        <span className="font-medium">{currentLabel}</span>
-        <ChevronDown className="w-3 h-3 text-gray-400" />
+        <span className="font-semibold">{currentLabel}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
       {open && (
         <div className="absolute z-50 top-full left-0 mt-1 rounded-lg bg-white border border-(--color-border) shadow-xl overflow-hidden min-w-[160px]">
@@ -61,7 +61,12 @@ function GroundTruthSelector({ value, onChange }: { value: GroundTruth; onChange
 }
 
 export function ResultsToolbar(props: Props) {
-  const { groundTruth, onGroundTruthChange, labelConfidence, onLabelConfidenceChange, unitOfAnalysis, onUnitChange, performanceView, onPerformanceViewChange } = props
+  const {
+    groundTruth, onGroundTruthChange,
+    labelConfidence, onLabelConfidenceChange,
+    unitOfAnalysis, onUnitChange,
+    performanceView, onPerformanceViewChange,
+  } = props
 
   const units: UnitOfAnalysis[] = ['alert', 'case', 'entity']
   const labelConfidenceOptions: { value: LabelConfidence; label: string }[] = [
@@ -70,27 +75,27 @@ export function ResultsToolbar(props: Props) {
   ]
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5 panel-shadow">
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-md">
       {/* Ground Truth */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Ground Truth</span>
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">Ground Truth</span>
         <GroundTruthSelector value={groundTruth} onChange={onGroundTruthChange} />
       </div>
 
-      <div className="w-px h-5 bg-(--color-border)" />
+      <div className="w-px h-6 bg-gray-200" />
 
       {/* Label Confidence */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Labels</span>
-        <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">Labels</span>
+        <div className="flex rounded-lg bg-gray-100 border border-gray-200 p-0.5">
           {labelConfidenceOptions.map(opt => (
             <button
               key={opt.value}
               onClick={() => onLabelConfidenceChange(opt.value)}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition-all cursor-pointer ${
+              className={`rounded-md px-4 py-2 text-[12px] font-semibold transition-all cursor-pointer ${
                 labelConfidence === opt.value
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               {opt.label}
@@ -99,20 +104,20 @@ export function ResultsToolbar(props: Props) {
         </div>
       </div>
 
-      <div className="w-px h-5 bg-(--color-border)" />
+      <div className="w-px h-6 bg-gray-200" />
 
       {/* Unit of Analysis */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Unit</span>
-        <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">Unit</span>
+        <div className="flex rounded-lg bg-gray-100 border border-gray-200 p-0.5">
           {units.map(u => (
             <button
               key={u}
               onClick={() => onUnitChange(u)}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-medium capitalize transition-all cursor-pointer ${
+              className={`rounded-md px-4 py-2 text-[12px] font-semibold capitalize transition-all cursor-pointer ${
                 unitOfAnalysis === u
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               {u}
@@ -121,20 +126,20 @@ export function ResultsToolbar(props: Props) {
         </div>
       </div>
 
-      <div className="w-px h-5 bg-(--color-border)" />
+      <div className="w-px h-6 bg-gray-200" />
 
       {/* Performance View */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">View</span>
-        <div className="flex rounded-lg bg-black/[0.03] border border-(--color-border) p-0.5">
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] uppercase tracking-widest text-gray-400 font-bold">View</span>
+        <div className="flex rounded-lg bg-gray-100 border border-gray-200 p-0.5">
           {(['absolute', 'marginal'] as PerformanceView[]).map(v => (
             <button
               key={v}
               onClick={() => onPerformanceViewChange(v)}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-medium capitalize transition-all cursor-pointer ${
+              className={`rounded-md px-4 py-2 text-[12px] font-semibold capitalize transition-all cursor-pointer ${
                 performanceView === v
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-[#00A99D] text-white shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               {v}

@@ -196,7 +196,7 @@ export const BACKTEST_RESULT: BacktestResult = {
       f1: 0.050,
       alertVolume: 1204,
       sarHitRate: 0.031,
-      falsePositiveRate: 0.969,
+      falsePositiveRate: 0.020,
     },
     l2: {
       precision: 0.058,
@@ -204,7 +204,7 @@ export const BACKTEST_RESULT: BacktestResult = {
       f1: 0.094,
       alertVolume: 2107,
       sarHitRate: 0.058,
-      falsePositiveRate: 0.942,
+      falsePositiveRate: 0.011,
     },
     l3: {
       precision: 0.092,
@@ -212,7 +212,7 @@ export const BACKTEST_RESULT: BacktestResult = {
       f1: 0.148,
       alertVolume: 3012,
       sarHitRate: 0.092,
-      falsePositiveRate: 0.908,
+      falsePositiveRate: -0.026,
     },
     global: {
       precision: 0.018,
@@ -220,7 +220,7 @@ export const BACKTEST_RESULT: BacktestResult = {
       f1: 0.028,
       alertVolume: 812,
       sarHitRate: 0.018,
-      falsePositiveRate: 0.982,
+      falsePositiveRate: 0.018,
     },
   },
 
@@ -341,7 +341,7 @@ export const BACKTEST_RESULT_FORMAL: BacktestResult = {
       f1: 0.043,
       alertVolume: 1204,
       sarHitRate: 0.027,
-      falsePositiveRate: 0.973,
+      falsePositiveRate: 0.022,
     },
     l2: {
       precision: 0.051,
@@ -349,7 +349,7 @@ export const BACKTEST_RESULT_FORMAL: BacktestResult = {
       f1: 0.082,
       alertVolume: 2107,
       sarHitRate: 0.051,
-      falsePositiveRate: 0.949,
+      falsePositiveRate: 0.009,
     },
     l3: {
       precision: 0.083,
@@ -357,7 +357,7 @@ export const BACKTEST_RESULT_FORMAL: BacktestResult = {
       f1: 0.134,
       alertVolume: 3012,
       sarHitRate: 0.083,
-      falsePositiveRate: 0.917,
+      falsePositiveRate: -0.025,
     },
     global: {
       precision: 0.015,
@@ -365,7 +365,7 @@ export const BACKTEST_RESULT_FORMAL: BacktestResult = {
       f1: 0.024,
       alertVolume: 812,
       sarHitRate: 0.015,
-      falsePositiveRate: 0.985,
+      falsePositiveRate: 0.018,
     },
   },
   atl: {

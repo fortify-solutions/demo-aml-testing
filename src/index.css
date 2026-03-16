@@ -45,13 +45,19 @@
   --color-surface: #ffffff;
   --color-border: #dfe2e8;
   --color-border-strong: #c9cdd5;
-  --color-muted: #6b7280;
+  --color-muted: #4b5563;
   --color-indigo: #00A99D;
   --color-violet: #8b5cf6;
   --color-violet-light: #a78bfa;
   --color-violet-lighter: #c084fc;
   --color-success: #16a34a;
   --color-danger: #dc2626;
+
+  /* Shift gray text scale one step darker */
+  --color-gray-400: #6b7280;
+  --color-gray-500: #4b5563;
+  --color-gray-600: #374151;
+  --color-gray-700: #1f2937;
 }
 
 html, body, #root {

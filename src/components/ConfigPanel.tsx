@@ -91,23 +91,23 @@ export function ConfigPanel(props: ConfigPanelProps) {
   ).length
 
   return (
-    <div className="h-14 flex items-center gap-4 px-6 border-b border-(--color-border) bg-(--color-surface) shrink-0">
+    <div className="h-16 flex items-center gap-4 px-6 bg-[#111827] shrink-0">
       {/* Rule Selection */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setRuleDropdownOpen(!ruleDropdownOpen)}
-          className="flex items-center gap-2 rounded-xl bg-black/[0.05] border border-(--color-border-strong) px-3 py-2 text-[13px] text-gray-700 hover:bg-black/[0.08] transition-all cursor-pointer min-w-[240px]"
+          className="flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-[13px] text-white hover:bg-white/15 transition-all cursor-pointer min-w-[240px]"
         >
           {selectedRule && <StatusDot ruleId={selectedRule.id} />}
           <span className="truncate flex-1 text-left">
-            {selectedRule ? selectedRule.name : 'Select a rule...'}
+            {selectedRule ? selectedRule.name : <span className="text-white/50">Select a rule...</span>}
           </span>
           {!selectedRule && needsAttentionCount > 0 && (
-            <span className="text-[9px] font-medium text-amber-600 bg-amber-50 border border-amber-200/60 rounded-full px-1.5 py-0.5 shrink-0">
+            <span className="text-[9px] font-medium text-amber-300 bg-amber-400/20 border border-amber-400/30 rounded-full px-1.5 py-0.5 shrink-0">
               {needsAttentionCount} need testing
             </span>
           )}
-          <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-white/40 shrink-0" />
         </button>
 
         {ruleDropdownOpen && (
@@ -169,8 +169,8 @@ export function ConfigPanel(props: ConfigPanelProps) {
       {selectedRule && (
         <div className="hidden xl:flex gap-1 shrink-0">
           {[selectedRule.taxonomy.l1, selectedRule.taxonomy.l2, selectedRule.taxonomy.l3].map((tag, i) => (
-            <span key={i} className="text-[9px] font-mono text-gray-500 bg-black/[0.04] rounded-full px-2 py-0.5 whitespace-nowrap">
-              L{i + 1}: {tag}
+            <span key={i} className="text-[11px] font-semibold text-white bg-white/15 rounded-full px-3 py-1 whitespace-nowrap">
+              <span className="text-white/50 font-medium text-[9px] mr-1">L{i + 1}</span>{tag}
             </span>
           ))}
         </div>
@@ -178,21 +178,22 @@ export function ConfigPanel(props: ConfigPanelProps) {
 
       <div className="flex-1" />
 
-      {/* Date Range — compact inline */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Period</span>
+      {/* Date Range */}
+      <div className="flex items-center gap-3 shrink-0 bg-white/10 border border-white/20 rounded-xl px-4 py-2">
+        <span className="text-[10px] uppercase tracking-widest text-white/50 font-semibold">Period</span>
+        <div className="w-px h-4 bg-white/20" />
         <input
           type="date"
           value={dateFrom}
           onChange={e => onDateFromChange(e.target.value)}
-          className="rounded-lg bg-black/[0.05] border border-(--color-border) px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-gray-400 transition-all w-[120px]"
+          className="bg-transparent text-[13px] font-medium text-white outline-none w-[118px] cursor-pointer [color-scheme:dark]"
         />
-        <span className="text-[11px] text-gray-500">–</span>
+        <span className="text-white/30 font-light">—</span>
         <input
           type="date"
           value={dateTo}
           onChange={e => onDateToChange(e.target.value)}
-          className="rounded-lg bg-black/[0.05] border border-(--color-border) px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-gray-400 transition-all w-[120px]"
+          className="bg-transparent text-[13px] font-medium text-white outline-none w-[118px] cursor-pointer [color-scheme:dark]"
         />
       </div>
 
@@ -200,20 +201,20 @@ export function ConfigPanel(props: ConfigPanelProps) {
       <button
         onClick={onRunBacktest}
         disabled={!canRun}
-        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-medium transition-all cursor-pointer shrink-0 ${
+        className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all cursor-pointer shrink-0 ${
           canRun
-            ? 'bg-[#00A99D] text-white hover:bg-[#009488]'
-            : 'bg-black/[0.04] text-gray-300 cursor-not-allowed'
+            ? 'bg-[#00A99D] text-white hover:bg-[#009488] shadow-lg shadow-[#00A99D]/30'
+            : 'bg-white/10 text-white/25 cursor-not-allowed'
         }`}
       >
         {isRunning ? (
           <>
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             Running...
           </>
         ) : (
           <>
-            <Play className="w-3.5 h-3.5" />
+            <Play className="w-4 h-4" />
             Run Backtest
           </>
         )}

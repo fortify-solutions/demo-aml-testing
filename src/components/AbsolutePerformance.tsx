@@ -61,7 +61,7 @@ function CredibleIntervalBar({ value, ci, isRate, metricKey }: {
 
     // SVG dimensions
     const svgW = 200
-    const svgH = 28
+    const svgH = 20
     const meanX = (pointPos / 100) * svgW
     const bellPath = buildBellCurvePath(svgW, svgH, pointPos)
 
@@ -70,13 +70,13 @@ function CredibleIntervalBar({ value, ci, isRate, metricKey }: {
     const hiPos = ((hi - rangeMin) / span) * 100
 
     return (
-      <div className="mt-2.5 space-y-0.5">
+      <div className="space-y-0.5">
         <div className="relative">
           <svg
             viewBox={`0 0 ${svgW} ${svgH}`}
             preserveAspectRatio="none"
             className="w-full"
-            style={{ height: 28 }}
+            style={{ height: 20 }}
           >
             <defs>
               <linearGradient id={`bellGrad-${metricKey}`} x1="0" y1="0" x2="0" y2="1">
@@ -118,9 +118,9 @@ function CredibleIntervalBar({ value, ci, isRate, metricKey }: {
             />
           </svg>
         </div>
-        <div className="flex justify-between text-[9px] font-mono text-gray-500">
+        <div className="flex justify-between text-[8px] font-mono text-gray-400">
           <span>{lo.toFixed(1)}%</span>
-          <span className="text-[9px] text-gray-500">90% credible interval</span>
+          <span>90% CI</span>
           <span>{hi.toFixed(1)}%</span>
         </div>
       </div>
@@ -143,8 +143,8 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
   const ci = metrics.ci
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) px-5 py-3 panel-shadow">
+      <div className="flex items-center gap-2 mb-3">
         <Target className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
           Absolute Performance
@@ -156,7 +156,7 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-6 gap-2">
         <AnimatePresence mode="wait">
           {METRIC_CONFIG.map((mc) => {
             const isHighlighted = highlightedMetrics?.has(mc.key)
@@ -170,28 +170,30 @@ export function AbsolutePerformance({ metrics, formalMetrics, labelMode, highlig
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25 }}
-                className={`rounded-xl bg-(--color-card) p-4 stage-glow transition-all ${
+                className={`rounded-lg bg-(--color-card) px-3 py-2.5 stage-glow transition-all ${
                   isHighlighted ? 'border border-violet-500/40' : 'border border-(--color-border)'
                 }`}
               >
-                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">
                   {mc.label}
                 </div>
-                <div className="text-[28px] font-mono text-gray-900 leading-none">
+                <div className="text-[20px] font-mono text-gray-900 leading-none">
                   {mc.format(metrics[mc.key])}
                 </div>
                 {showDual && (
-                  <div className="text-[11px] font-mono text-gray-500 mt-1.5">
-                    formal only {mc.format(formalMetrics[mc.key])}
+                  <div className="text-[10px] font-mono text-gray-500 mt-1">
+                    <span className="text-gray-400">formal</span> {mc.format(formalMetrics[mc.key])}
                   </div>
                 )}
                 {metricCI && (
-                  <CredibleIntervalBar
-                    value={metrics[mc.key]}
-                    ci={metricCI}
-                    isRate={mc.isRate}
-                    metricKey={mc.key}
-                  />
+                  <div className="mt-1.5">
+                    <CredibleIntervalBar
+                      value={metrics[mc.key]}
+                      ci={metricCI}
+                      isRate={mc.isRate}
+                      metricKey={mc.key}
+                    />
+                  </div>
                 )}
               </motion.div>
             )

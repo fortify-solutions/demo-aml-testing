@@ -8,6 +8,7 @@ interface Props {
   performanceView: PerformanceView
   taxonomyLevel: TaxonomyLevel
   rule: Rule
+  inTabContainer?: boolean
 }
 
 type SortKey = 'entityId' | 'entityName' | 'alertDate' | 'transactionCount' | 'totalAmount' | 'sarFiled'
@@ -23,7 +24,7 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: Props) {
+export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, inTabContainer }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('alertDate')
@@ -84,9 +85,112 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
   const isMarginalView = performanceView === 'marginal'
   const levelLabel = taxonomyLevel === 'global' ? 'Global' : taxonomyLevel.toUpperCase()
 
+  const content = (
+    <div className="px-5 py-5 space-y-3">
+      {/* Toolbar: search + marginal badge */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search entity ID or name..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-lg border border-(--color-border) bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+          />
+        </div>
+        {isMarginalView && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <AlertTriangle className="w-3 h-3" />
+            Showing marginal only ({levelLabel})
+          </span>
+        )}
+        <span className="text-[11px] text-gray-500 ml-auto">
+          {sorted.length} result{sorted.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="border border-(--color-border) rounded-lg overflow-hidden">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="bg-gray-50/80">
+              <th className="w-8" />
+              {([
+                ['entityId', 'Entity ID'],
+                ['entityName', 'Entity'],
+                ['alertDate', 'Date'],
+                ['transactionCount', 'Txns'],
+                ['totalAmount', 'Amount'],
+                ['sarFiled', 'SAR'],
+              ] as [SortKey, string][]).map(([key, label]) => (
+                <th
+                  key={key}
+                  onClick={() => handleSort(key)}
+                  className="px-3 py-2 text-left font-semibold text-gray-500 cursor-pointer hover:text-gray-700 select-none whitespace-nowrap"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {label}
+                    {sortKey === key && (
+                      <ArrowUpDown className="w-3 h-3 text-blue-400" />
+                    )}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.map(alert => (
+              <AlertRow
+                key={alert.id}
+                alert={alert}
+                rule={rule}
+                isExpanded={expandedRow === alert.id}
+                onToggle={() => setExpandedRow(expandedRow === alert.id ? null : alert.id)}
+              />
+            ))}
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-[12px]">
+                  No alerts match the current filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-[11px] text-gray-500">
+            Page {page + 1} of {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-2.5 py-1 text-[11px] rounded-md border border-(--color-border) disabled:opacity-30 hover:bg-gray-50 cursor-pointer disabled:cursor-default"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="px-2.5 py-1 text-[11px] rounded-md border border-(--color-border) disabled:opacity-30 hover:bg-gray-50 cursor-pointer disabled:cursor-default"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  if (inTabContainer) return content
+
   return (
     <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
-      {/* Toggle header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
@@ -100,7 +204,6 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>
-
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -110,105 +213,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule }: 
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 space-y-3">
-              {/* Toolbar: search + marginal badge */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-xs">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Search entity ID or name..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-lg border border-(--color-border) bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
-                  />
-                </div>
-                {isMarginalView && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    <AlertTriangle className="w-3 h-3" />
-                    Showing marginal only ({levelLabel})
-                  </span>
-                )}
-                <span className="text-[11px] text-gray-500 ml-auto">
-                  {sorted.length} result{sorted.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-
-              {/* Table */}
-              <div className="border border-(--color-border) rounded-lg overflow-hidden">
-                <table className="w-full text-[12px]">
-                  <thead>
-                    <tr className="bg-gray-50/80">
-                      <th className="w-8" />
-                      {([
-                        ['entityId', 'Entity ID'],
-                        ['entityName', 'Entity'],
-                        ['alertDate', 'Date'],
-                        ['transactionCount', 'Txns'],
-                        ['totalAmount', 'Amount'],
-                        ['sarFiled', 'SAR'],
-                      ] as [SortKey, string][]).map(([key, label]) => (
-                        <th
-                          key={key}
-                          onClick={() => handleSort(key)}
-                          className="px-3 py-2 text-left font-semibold text-gray-500 cursor-pointer hover:text-gray-700 select-none whitespace-nowrap"
-                        >
-                          <span className="inline-flex items-center gap-1">
-                            {label}
-                            {sortKey === key && (
-                              <ArrowUpDown className="w-3 h-3 text-blue-400" />
-                            )}
-                          </span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginated.map(alert => (
-                      <AlertRow
-                        key={alert.id}
-                        alert={alert}
-                        rule={rule}
-                        isExpanded={expandedRow === alert.id}
-                        onToggle={() => setExpandedRow(expandedRow === alert.id ? null : alert.id)}
-                      />
-                    ))}
-                    {paginated.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500 text-[12px]">
-                          No alerts match the current filters.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-gray-500">
-                    Page {page + 1} of {totalPages}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setPage(p => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                      className="px-2.5 py-1 text-[11px] rounded-md border border-(--color-border) disabled:opacity-30 hover:bg-gray-50 cursor-pointer disabled:cursor-default"
-                    >
-                      Prev
-                    </button>
-                    <button
-                      onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                      disabled={page >= totalPages - 1}
-                      className="px-2.5 py-1 text-[11px] rounded-md border border-(--color-border) disabled:opacity-30 hover:bg-gray-50 cursor-pointer disabled:cursor-default"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {content}
           </motion.div>
         )}
       </AnimatePresence>
