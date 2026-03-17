@@ -54,8 +54,8 @@ function LabelSparkline({ data, total }: { data: VolumeEntry[]; total: number })
                 background: 'white',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               }}
-              labelFormatter={(label: string) => new Date(label).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              formatter={(value: number) => [value, 'SARs']}
+              labelFormatter={(label: unknown) => new Date(label as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              formatter={(value: unknown) => [value as number, 'SARs']}
             />
           </AreaChart>
         </ResponsiveContainer>
