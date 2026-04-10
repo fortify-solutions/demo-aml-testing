@@ -91,7 +91,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
   ).length
 
   return (
-    <div className="h-16 flex items-center gap-4 px-6 bg-[#111827] shrink-0">
+    <div className="h-16 flex items-center gap-4 px-6 bg-[#111827] shrink-0 sticky top-0 z-50">
       {/* Rule Selection */}
       <div className="relative" ref={dropdownRef}>
         <button

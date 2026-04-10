@@ -1,5 +1,6 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import type { Rule, UnitOfAnalysis, GroundTruth, TaxonomyLevel, BacktestResult, Recommendation, LabelConfidence, PerformanceView } from './types'
 import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE, RULES_WITH_DATA, RULES } from './data/mockData'
 import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/computeResults'
@@ -42,6 +43,22 @@ export default function App() {
   const [highlightedMetrics, setHighlightedMetrics] = useState<Set<string> | null>(null)
   const [activeTab, setActiveTab] = useState<MainTab>('performance')
   const [performanceView, setPerformanceView] = useState<PerformanceView>('absolute')
+  const [summaryCollapsed, setSummaryCollapsed] = useState(false)
+  const summaryContentRef = useRef<HTMLDivElement>(null)
+  const [summaryHeight, setSummaryHeight] = useState<number | 'auto'>('auto')
+
+  // Measure summary content height for smooth collapse animation
+  useEffect(() => {
+    if (summaryContentRef.current && runState === 'results') {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          setSummaryHeight(entry.contentRect.height)
+        }
+      })
+      observer.observe(summaryContentRef.current)
+      return () => observer.disconnect()
+    }
+  }, [runState])
 
   const labelMode = labelConfidence === 'formal_inferred' ? 'formal_inferred' as const : 'formal' as const
 
@@ -94,7 +111,7 @@ export default function App() {
   ]
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-(--color-bg)">
+    <div className="flex flex-col min-h-screen bg-(--color-bg)">
       {/* Top Config Bar */}
       <ConfigPanel
         selectedRule={selectedRule}
@@ -107,7 +124,7 @@ export default function App() {
         isRunning={runState === 'loading'}
       />
 
-      {/* Fixed summary header: toolbar + rule logic + label section + absolute performance */}
+      {/* Collapsible summary header */}
       <AnimatePresence>
         {runState === 'results' && activeResult && formalOnly && (
           <motion.div
@@ -116,52 +133,68 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="shrink-0 border-b border-(--color-border) bg-(--color-bg) overflow-y-auto"
-            style={{ maxHeight: 'calc(60vh)' }}
+            className="shrink-0 border-b border-(--color-border) bg-(--color-bg)"
           >
-            <div className="px-8 pt-4 pb-5 space-y-4">
-              <ResultsToolbar
-                groundTruth={groundTruth}
-                onGroundTruthChange={setGroundTruth}
-                labelConfidence={labelConfidence}
-                onLabelConfidenceChange={setLabelConfidence}
-                unitOfAnalysis={unitOfAnalysis}
-                onUnitChange={setUnitOfAnalysis}
-                performanceView={performanceView}
-                onPerformanceViewChange={setPerformanceView}
-              />
-              <RuleLogicPanel rule={selectedRule!} />
-              <AnimatePresence mode="wait">
-                {performanceView === 'absolute' ? (
-                  <motion.div key="abs" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
-                    <AbsolutePerformance
-                      metrics={activeResult.absolute}
-                      formalMetrics={formalOnly.absolute}
-                      labelMode={labelMode}
-                      highlightedMetrics={highlightedMetrics ?? undefined}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div key="marg" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
-                    <MarginalPerformance
-                      marginalData={activeResult.marginal}
-                      baselineData={activeResult.marginalBaseline}
-                      absoluteData={activeResult.absolute}
-                      taxonomy={selectedRule!.taxonomy}
-                      selectedLevel={taxonomyLevel}
-                      onLevelChange={setTaxonomyLevel}
-                      labelMode={labelMode}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <motion.div
+              animate={{ height: summaryCollapsed ? 0 : summaryHeight }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className={summaryCollapsed ? 'overflow-hidden' : 'overflow-y-auto'}
+              style={{ maxHeight: summaryCollapsed ? 0 : 'calc(100vh - 7rem)' }}
+            >
+              <div ref={summaryContentRef} className="px-8 pt-4 pb-5 space-y-4">
+                <ResultsToolbar
+                  groundTruth={groundTruth}
+                  onGroundTruthChange={setGroundTruth}
+                  labelConfidence={labelConfidence}
+                  onLabelConfidenceChange={setLabelConfidence}
+                  unitOfAnalysis={unitOfAnalysis}
+                  onUnitChange={setUnitOfAnalysis}
+                  performanceView={performanceView}
+                  onPerformanceViewChange={setPerformanceView}
+                />
+                <RuleLogicPanel rule={selectedRule!} />
+                <AnimatePresence mode="wait">
+                  {performanceView === 'absolute' ? (
+                    <motion.div key="abs" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
+                      <AbsolutePerformance
+                        metrics={activeResult.absolute}
+                        formalMetrics={formalOnly.absolute}
+                        labelMode={labelMode}
+                        highlightedMetrics={highlightedMetrics ?? undefined}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="marg" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
+                      <MarginalPerformance
+                        marginalData={activeResult.marginal}
+                        baselineData={activeResult.marginalBaseline}
+                        absoluteData={activeResult.absolute}
+                        taxonomy={selectedRule!.taxonomy}
+                        selectedLevel={taxonomyLevel}
+                        onLevelChange={setTaxonomyLevel}
+                        labelMode={labelMode}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+            <button
+              onClick={() => setSummaryCollapsed(c => !c)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              {summaryCollapsed ? (
+                <>Show summary<ChevronDown className="w-3.5 h-3.5" /></>
+              ) : (
+                <>Hide summary<ChevronUp className="w-3.5 h-3.5" /></>
+              )}
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Tab bar + scrollable tab content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {runState === 'empty' && (
             <motion.div
@@ -198,7 +231,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="flex-1 flex flex-col overflow-hidden"
+              className="flex-1 flex flex-col"
             >
               {/* Tab bar */}
               <div className="shrink-0 border-b border-(--color-border) bg-gray-50 px-6">
@@ -227,7 +260,7 @@ export default function App() {
               </div>
 
               {/* Tab content — full-width, scrollable */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
