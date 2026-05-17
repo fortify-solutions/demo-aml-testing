@@ -1,14 +1,14 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronUp, ChevronDown } from 'lucide-react'
-import type { Rule, UnitOfAnalysis, GroundTruth, TaxonomyLevel, BacktestResult, Recommendation, LabelConfidence, PerformanceView } from './types'
-import { BACKTEST_RESULT, BACKTEST_RESULT_FORMAL, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE, RULES_WITH_DATA, RULES } from './data/mockData'
-import { computeAdjustedResult, computeAdjustedStratifiedData } from './data/computeResults'
+import type { Rule, UnitOfAnalysis, GroundTruth, TaxonomyLevel, BacktestResult, Recommendation, LabelConfidence, ASelection } from './types'
+import { BACKTEST_RESULT, RECOMMENDATIONS_BY_RULE, MOCK_ALERTS_BY_RULE, RULES_WITH_DATA, RULES } from './data/mockData'
+import { computeAdjustedResult, computeAdjustedStratifiedData, getAB } from './data/computeResults'
+import { useDomain, useCopy } from './domain-context'
 import { ConfigPanel } from './components/ConfigPanel'
 import { ResultsToolbar } from './components/ResultsToolbar'
 import { RuleLogicPanel } from './components/RuleLogicPanel'
-import { AbsolutePerformance } from './components/AbsolutePerformance'
-import { MarginalPerformance } from './components/MarginalPerformance'
+import { ABPerformance } from './components/ABPerformance'
 import { PerformanceDataTable } from './components/PerformanceDataTable'
 import { VolumeChart } from './components/VolumeChart'
 import { AlertExplorer } from './components/AlertExplorer'
@@ -19,19 +19,32 @@ type RunState = 'empty' | 'loading' | 'results'
 type MainTab = 'performance' | 'explorer' | 'atl_btl' | 'recommendations'
 
 function SkeletonCard({ height = 'h-[200px]' }: { height?: string }) {
-  return <div className={`rounded-xl bg-black/[0.03] animate-pulse ${height}`} />
+  return <div className={`rounded-md bg-black/[0.03] animate-pulse ${height}`} />
 }
 
 export default function App() {
+  const { mode } = useDomain()
+  const copy = useCopy()
+
   // Config state
   const [selectedRule, setSelectedRule] = useState<Rule | null>(null)
   const [dateFrom, setDateFrom] = useState('2025-07-01')
   const [dateTo, setDateTo] = useState('2025-09-28')
 
+  // When domain mode changes, drop the selected rule (it may belong to the other domain)
+  useEffect(() => {
+    if (selectedRule && (selectedRule.domain ?? 'aml') !== mode) {
+      setSelectedRule(null)
+      setRunState('empty')
+      setResult(null)
+      setRecs([])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+
   // Results state
   const [runState, setRunState] = useState<RunState>('empty')
   const [result, setResult] = useState<BacktestResult | null>(null)
-  const [formalResult, setFormalResult] = useState<BacktestResult | null>(null)
   const [recsLoading, setRecsLoading] = useState(false)
   const [recs, setRecs] = useState<Recommendation[]>([])
 
@@ -39,26 +52,15 @@ export default function App() {
   const [unitOfAnalysis, setUnitOfAnalysis] = useState<UnitOfAnalysis>('alert')
   const [groundTruth, setGroundTruth] = useState<GroundTruth>('sar')
   const [labelConfidence, setLabelConfidence] = useState<LabelConfidence>('formal_only')
-  const [taxonomyLevel, setTaxonomyLevel] = useState<TaxonomyLevel>('l1')
+  const [aSelection, setASelection] = useState<ASelection>({ kind: 'portfolio_minus', level: 'l1' })
+  // Derived taxonomy level for panels other than ABPerformance (VolumeChart, AlertExplorer)
+  const taxonomyLevel: TaxonomyLevel = aSelection.kind === 'portfolio_minus' ? aSelection.level : 'l1'
   const [highlightedMetrics, setHighlightedMetrics] = useState<Set<string> | null>(null)
   const [activeTab, setActiveTab] = useState<MainTab>('performance')
-  const [performanceView, setPerformanceView] = useState<PerformanceView>('absolute')
   const [summaryCollapsed, setSummaryCollapsed] = useState(false)
+  // overflow flag: hidden during animation, visible once fully expanded so popovers (e.g. A-selector) aren't clipped
+  const [summaryOverflowVisible, setSummaryOverflowVisible] = useState(true)
   const summaryContentRef = useRef<HTMLDivElement>(null)
-  const [summaryHeight, setSummaryHeight] = useState<number | 'auto'>('auto')
-
-  // Measure summary content height for smooth collapse animation
-  useEffect(() => {
-    if (summaryContentRef.current && runState === 'results') {
-      const observer = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setSummaryHeight(entry.contentRect.height)
-        }
-      })
-      observer.observe(summaryContentRef.current)
-      return () => observer.disconnect()
-    }
-  }, [runState])
 
   const labelMode = labelConfidence === 'formal_inferred' ? 'formal_inferred' as const : 'formal' as const
 
@@ -72,7 +74,6 @@ export default function App() {
 
     setTimeout(() => {
       setResult(BACKTEST_RESULT)
-      setFormalResult(BACKTEST_RESULT_FORMAL)
       setRunState('results')
 
       setTimeout(() => {
@@ -91,10 +92,10 @@ export default function App() {
     return computeAdjustedResult(result, groundTruth, unitOfAnalysis, labelConfidence)
   }, [result, groundTruth, unitOfAnalysis, labelConfidence])
 
-  const formalOnly = useMemo(() => {
-    if (!formalResult) return null
-    return computeAdjustedResult(formalResult, groundTruth, unitOfAnalysis, labelConfidence)
-  }, [formalResult, groundTruth, unitOfAnalysis, labelConfidence])
+  const ab = useMemo(() => {
+    if (!activeResult) return null
+    return getAB(activeResult, aSelection)
+  }, [activeResult, aSelection])
 
   const stratifiedData = useMemo(() => {
     return computeAdjustedStratifiedData(groundTruth, unitOfAnalysis, labelConfidence)
@@ -106,7 +107,7 @@ export default function App() {
   const TABS: { id: MainTab; label: string; badge?: number }[] = [
     { id: 'performance', label: 'Performance Data' },
     { id: 'explorer', label: 'Alert Explorer', badge: alertsCount },
-    { id: 'atl_btl', label: 'ATL / BTL Analysis' },
+    { id: 'atl_btl', label: copy.thresholdAnalysis.tabName },
     { id: 'recommendations', label: 'Recommendations', badge: recsCount > 0 ? recsCount : undefined },
   ]
 
@@ -126,7 +127,7 @@ export default function App() {
 
       {/* Collapsible summary header */}
       <AnimatePresence>
-        {runState === 'results' && activeResult && formalOnly && (
+        {runState === 'results' && activeResult && (
           <motion.div
             key="results-header"
             initial={{ opacity: 0, y: -8 }}
@@ -136,12 +137,14 @@ export default function App() {
             className="shrink-0 border-b border-(--color-border) bg-(--color-bg)"
           >
             <motion.div
-              animate={{ height: summaryCollapsed ? 0 : summaryHeight }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className={summaryCollapsed ? 'overflow-hidden' : 'overflow-y-auto'}
-              style={{ maxHeight: summaryCollapsed ? 0 : 'calc(100vh - 7rem)' }}
+              animate={{ height: summaryCollapsed ? 0 : 'auto' }}
+              initial={false}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+              onAnimationStart={() => setSummaryOverflowVisible(false)}
+              onAnimationComplete={() => { if (!summaryCollapsed) setSummaryOverflowVisible(true) }}
+              style={{ overflow: summaryOverflowVisible && !summaryCollapsed ? 'visible' : 'hidden' }}
             >
-              <div ref={summaryContentRef} className="px-8 pt-4 pb-5 space-y-4">
+              <div ref={summaryContentRef} className="px-8 pt-3 pb-3 space-y-3">
                 <ResultsToolbar
                   groundTruth={groundTruth}
                   onGroundTruthChange={setGroundTruth}
@@ -149,34 +152,18 @@ export default function App() {
                   onLabelConfidenceChange={setLabelConfidence}
                   unitOfAnalysis={unitOfAnalysis}
                   onUnitChange={setUnitOfAnalysis}
-                  performanceView={performanceView}
-                  onPerformanceViewChange={setPerformanceView}
                 />
                 <RuleLogicPanel rule={selectedRule!} />
-                <AnimatePresence mode="wait">
-                  {performanceView === 'absolute' ? (
-                    <motion.div key="abs" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
-                      <AbsolutePerformance
-                        metrics={activeResult.absolute}
-                        formalMetrics={formalOnly.absolute}
-                        labelMode={labelMode}
-                        highlightedMetrics={highlightedMetrics ?? undefined}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div key="marg" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
-                      <MarginalPerformance
-                        marginalData={activeResult.marginal}
-                        baselineData={activeResult.marginalBaseline}
-                        absoluteData={activeResult.absolute}
-                        taxonomy={selectedRule!.taxonomy}
-                        selectedLevel={taxonomyLevel}
-                        onLevelChange={setTaxonomyLevel}
-                        labelMode={labelMode}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {ab && (
+                  <ABPerformance
+                    ab={ab}
+                    rule={selectedRule!}
+                    aSelection={aSelection}
+                    onASelectionChange={setASelection}
+                    labelMode={labelMode}
+                    highlightedMetrics={highlightedMetrics ?? undefined}
+                  />
+                )}
               </div>
             </motion.div>
             <button
@@ -225,7 +212,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {runState === 'results' && activeResult && formalOnly && (
+          {runState === 'results' && activeResult && (
             <motion.div
               key="results-tabs"
               initial={{ opacity: 0 }}
@@ -234,22 +221,24 @@ export default function App() {
               className="flex-1 flex flex-col"
             >
               {/* Tab bar */}
-              <div className="shrink-0 border-b border-(--color-border) bg-gray-50 px-6">
-                <div className="flex gap-0.5">
+              <div className="shrink-0 border-b border-(--color-border-subtle) bg-(--color-panel) px-6">
+                <div className="flex gap-1">
                   {TABS.map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex items-center gap-2 px-5 py-3.5 text-[12px] font-semibold whitespace-nowrap transition-all cursor-pointer border-b-2 -mb-px ${
+                      className={`relative flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer border-b-2 -mb-px ${
                         activeTab === tab.id
-                          ? 'text-[#00A99D] border-[#00A99D] bg-white rounded-t-lg'
-                          : 'text-gray-500 border-transparent hover:text-gray-800 hover:bg-white/60 rounded-t-lg'
+                          ? 'text-(--color-primary) border-(--color-primary)'
+                          : 'text-(--color-text-secondary) border-transparent hover:text-(--color-text-primary)'
                       }`}
                     >
                       {tab.label}
                       {tab.badge !== undefined && tab.badge > 0 && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold leading-none ${
-                          activeTab === tab.id ? 'bg-[#00A99D] text-white' : 'bg-gray-200 text-gray-500'
+                        <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-semibold leading-none border ${
+                          activeTab === tab.id
+                            ? 'bg-(--color-surface-selected) text-(--color-primary) border-(--color-border-subtle)'
+                            : 'bg-gray-50 text-gray-500 border-(--color-border-subtle)'
                         }`}>
                           {tab.badge}
                         </span>
@@ -275,9 +264,8 @@ export default function App() {
                         <VolumeChart
                           data={activeResult.volumeOverTime}
                           selectedLevel={taxonomyLevel}
-                          levelLabel={taxonomyLevel === 'global' ? 'Global' : selectedRule!.taxonomy[taxonomyLevel as 'l1' | 'l2' | 'l3']}
+                          levelLabel={taxonomyLevel === 'global' ? '' : selectedRule!.taxonomy[taxonomyLevel as 'l1' | 'l2' | 'l3']}
                           labelMode={labelMode}
-                          performanceView={performanceView}
                         />
                         <PerformanceDataTable data={stratifiedData} inTabContainer />
                       </>
@@ -286,7 +274,6 @@ export default function App() {
                     {activeTab === 'explorer' && (
                       <AlertExplorer
                         alerts={MOCK_ALERTS_BY_RULE[dataRuleId] ?? []}
-                        performanceView="absolute"
                         taxonomyLevel={taxonomyLevel}
                         rule={dataRule}
                         inTabContainer

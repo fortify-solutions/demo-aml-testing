@@ -1,4 +1,4 @@
-import type { Rule, BacktestResult, Recommendation, AlertRecord, TransactionRecord, ThresholdComparison, TaxonomyLevel } from '../types'
+import type { Rule, BacktestResult, Recommendation, AlertRecord, TransactionRecord, ThresholdComparison, TaxonomyLevel, PerformanceMetrics } from '../types'
 
 export const RULES: Rule[] = [
   {
@@ -121,8 +121,31 @@ const DUMMY_RULES: Rule[] = [
   { id: 'dummy-022', name: 'Mule Account Network', description: '', taxonomy: { l1: 'Fraud Overlap', l2: 'Network Analysis', l3: 'Mule Detection' }, parameters: [], lookbackWindowHours: 336, batchCadenceHours: 24 },
 ]
 
-/** All rules: real + dummy, for the dropdown */
-export const ALL_RULES: Rule[] = [...RULES, ...DUMMY_RULES]
+/** Fraud-domain rules — placeholder names, no backtest data wired yet. Shown only in Fraud mode. */
+const FRAUD_RULES: Rule[] = [
+  // Card-not-present (CNP) fraud
+  { id: 'fraud-001', name: 'Velocity of CNP Transactions', description: 'Multiple card-not-present transactions in rapid succession', taxonomy: { l1: 'CNP Fraud', l2: 'Velocity', l3: 'Rapid Authorisations' }, parameters: [], lookbackWindowHours: 1, batchCadenceHours: 1, domain: 'fraud' },
+  { id: 'fraud-002', name: 'Geo-Velocity Impossible Travel', description: 'Same card used in geographically impossible succession', taxonomy: { l1: 'CNP Fraud', l2: 'Geo Anomaly', l3: 'Impossible Travel' }, parameters: [], lookbackWindowHours: 6, batchCadenceHours: 1, domain: 'fraud' },
+  { id: 'fraud-003', name: 'High-Risk Merchant Authorisation', description: 'Authorisations to known high-risk merchants', taxonomy: { l1: 'CNP Fraud', l2: 'Merchant Risk', l3: 'High-Risk MCC' }, parameters: [], lookbackWindowHours: 24, batchCadenceHours: 1, domain: 'fraud' },
+  // Account Takeover (ATO)
+  { id: 'fraud-004', name: 'New Device + High-Value Transfer', description: 'First-time device followed by an outsized transfer', taxonomy: { l1: 'Account Takeover', l2: 'Device Risk', l3: 'New Device Pivot' }, parameters: [], lookbackWindowHours: 24, batchCadenceHours: 1, domain: 'fraud' },
+  { id: 'fraud-005', name: 'Password Reset + Beneficiary Change', description: 'Password reset followed quickly by adding a new beneficiary', taxonomy: { l1: 'Account Takeover', l2: 'Credential Risk', l3: 'Reset-Then-Pay' }, parameters: [], lookbackWindowHours: 24, batchCadenceHours: 1, domain: 'fraud' },
+  { id: 'fraud-006', name: 'Session Hijack Indicators', description: 'Session anomalies consistent with hijack — IP shift, UA change', taxonomy: { l1: 'Account Takeover', l2: 'Session Risk', l3: 'Session Anomalies' }, parameters: [], lookbackWindowHours: 1, batchCadenceHours: 1, domain: 'fraud' },
+  // Authorised Push Payment (APP) / scam
+  { id: 'fraud-007', name: 'First-Party APP Scam Pattern', description: 'Pattern consistent with social-engineering push payments', taxonomy: { l1: 'APP Scam', l2: 'Behavioural', l3: 'Coached Transfers' }, parameters: [], lookbackWindowHours: 24, batchCadenceHours: 1, domain: 'fraud' },
+  { id: 'fraud-008', name: 'Mule Receiver Network', description: 'Recipient account previously flagged as a mule', taxonomy: { l1: 'APP Scam', l2: 'Network Analysis', l3: 'Mule Receivers' }, parameters: [], lookbackWindowHours: 168, batchCadenceHours: 12, domain: 'fraud' },
+  // Friendly fraud / chargeback abuse
+  { id: 'fraud-009', name: 'Repeat Chargeback Filer', description: 'Customer with above-baseline chargeback rate', taxonomy: { l1: 'Friendly Fraud', l2: 'Chargeback Abuse', l3: 'Repeat Filer' }, parameters: [], lookbackWindowHours: 4320, batchCadenceHours: 24, domain: 'fraud' },
+  { id: 'fraud-010', name: 'Refund-Then-Dispute', description: 'Customer obtains refund then files chargeback for same transaction', taxonomy: { l1: 'Friendly Fraud', l2: 'Chargeback Abuse', l3: 'Refund Then Dispute' }, parameters: [], lookbackWindowHours: 4320, batchCadenceHours: 24, domain: 'fraud' },
+]
+
+/** Tag default rules as AML for clean filtering by domain */
+for (const r of [...RULES, ...DUMMY_RULES]) {
+  if (!r.domain) r.domain = 'aml'
+}
+
+/** All rules: real + dummy + fraud, filtered by domain at the UI layer */
+export const ALL_RULES: Rule[] = [...RULES, ...DUMMY_RULES, ...FRAUD_RULES]
 
 /** IDs of rules that have full backtest data */
 export const RULES_WITH_DATA = new Set(RULES.map(r => r.id))
@@ -561,6 +584,30 @@ export const MARGINAL_PEER_COUNTS: Record<string, number> = {
   l3: 3,
   global: 47,
 }
+
+/** Historical / draft versions of a rule used by the A-selector "prior version" mode.
+ *  These are the rule-in-isolation metrics for each version (B-style absolute numbers). */
+export const RULE_VERSIONS: { id: string; label: string; description: string; metrics: PerformanceMetrics }[] = [
+  {
+    id: 'v1',
+    label: 'v1 (production)',
+    description: 'Currently deployed parameters',
+    metrics: { precision: 0.058, recall: 0.42, f1: 0.103, alertVolume: 1820, sarHitRate: 0.058, falsePositiveRate: 0.942 },
+  },
+  {
+    id: 'v2',
+    label: 'v2 (last quarter)',
+    description: 'Tightened velocity floor; deprecated 2025-04',
+    metrics: { precision: 0.071, recall: 0.36, f1: 0.119, alertVolume: 1380, sarHitRate: 0.071, falsePositiveRate: 0.929 },
+  },
+  {
+    id: 'v3-draft',
+    label: 'v3 draft',
+    description: 'Engineering draft, not yet deployed',
+    metrics: { precision: 0.082, recall: 0.31, f1: 0.130, alertVolume: 1060, sarHitRate: 0.082, falsePositiveRate: 0.918 },
+  },
+]
+
 
 export const CASE_LEVELS = [1, 2, 3]
 

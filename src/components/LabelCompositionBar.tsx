@@ -32,14 +32,14 @@ function LabelSparkline({ data, total }: { data: VolumeEntry[]; total: number })
           <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="sarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#00A99D" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#00A99D" stopOpacity={0.02} />
+                <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <Area
               type="monotone"
               dataKey="sars"
-              stroke="#00A99D"
+              stroke="var(--color-accent)"
               strokeWidth={1.5}
               fill="url(#sarGrad)"
               dot={false}
@@ -78,7 +78,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode, volume
   const isFormalOnly = labelMode === 'formal'
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
+    <div className="rounded-md border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
       <div className="flex items-center gap-2 mb-3">
         <Tag className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
@@ -93,7 +93,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode, volume
           <div className="h-2.5 rounded-full overflow-hidden bg-black/[0.06] flex">
             <motion.div
               className="h-full rounded-l-full"
-              style={{ backgroundColor: '#00A99D' }}
+              style={{ backgroundColor: 'var(--color-accent)' }}
               initial={{ width: 0 }}
               animate={{ width: `${formalPct}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -119,7 +119,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode, volume
 
           <div className="flex items-center gap-5 mt-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#00A99D' }} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
               <span className="text-[11px] font-mono text-gray-500">
                 Formal: {formal.toLocaleString()}
               </span>

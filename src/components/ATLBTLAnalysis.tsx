@@ -4,6 +4,7 @@ import { Sliders, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { PopulationSegment, LabelMode, Rule } from '../types'
 import { CHART_COLORS } from '../theme'
+import { useCopy } from '../domain-context'
 
 interface Props {
   atl: PopulationSegment
@@ -54,22 +55,24 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
   const isATL = side === 'left'
   const showInferred = labelMode === 'formal_inferred'
   const isSparse = !isATL && segment.sarRate === 0 && labelMode === 'formal'
+  const copy = useCopy()
+  const ta = copy.thresholdAnalysis
 
   return (
     <div className="flex-1 space-y-4">
       {/* Segment header with icon */}
       <div className="flex items-center gap-2">
         <div className={`w-5 h-5 rounded-md flex items-center justify-center ${
-          isATL ? 'bg-indigo-50 text-indigo-500' : 'bg-gray-100 text-gray-400'
+          isATL ? 'bg-(--color-surface-selected) text-(--color-accent)' : 'bg-gray-100 text-gray-400'
         }`}>
           {isATL ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
-            {isATL ? 'Above the Line' : 'Below the Line'}
+            {isATL ? ta.aboveName : ta.belowName}
           </div>
           <div className="text-[9px] text-gray-500">
-            {isATL ? 'Entities that triggered the rule' : 'Entities that did not trigger'}
+            {isATL ? ta.aboveDescription : ta.belowDescription}
           </div>
         </div>
       </div>
@@ -80,12 +83,12 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
       </div>
 
       {/* SAR Rate */}
-      <div className={`rounded-xl p-3 stage-glow ${
+      <div className={`rounded-md p-3 stage-glow ${
         isSparse
           ? 'bg-(--color-card) border border-(--color-border)'
           : 'bg-(--color-card) border border-(--color-border-strong)'
       }`}>
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">SAR Rate</div>
+        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{copy.hitRateShort}</div>
         <div className="text-[22px] font-mono text-gray-900 leading-none">
           {(segment.sarRate * 100).toFixed(1)}%
         </div>
@@ -96,8 +99,8 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
 
       {/* Inferred SAR Rate */}
       {showInferred && (
-        <div className="rounded-xl bg-(--color-card) border border-(--color-border) p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Inferred SAR Rate</div>
+        <div className="rounded-md bg-(--color-card) border border-(--color-border) p-3">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Inferred {copy.hitRateShort}</div>
           <div className="text-[18px] font-mono text-gray-700 leading-none">
             {(segment.inferredSarRate * 100).toFixed(1)}%
           </div>
@@ -130,7 +133,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="count" name="Count" fill={isATL ? CHART_COLORS.indigo : CHART_COLORS.violetLighter} radius={[2, 2, 0, 0]} opacity={0.6} />
-            <Bar dataKey="sarCount" name="SAR Hits" fill={isATL ? CHART_COLORS.violet : CHART_COLORS.violetLight} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="sarCount" name={`${copy.confirmedLabelShort} hits`} fill={isATL ? CHART_COLORS.violet : CHART_COLORS.violetLight} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -141,23 +144,24 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
 export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Props) {
   const [expanded, setExpanded] = useState(false)
   const threshold = buildThresholdDescription(rule)
+  const copy = useCopy()
 
   const content = (
     <div className="px-5 py-5">
       {/* Threshold definition banner */}
-      <div className="rounded-lg bg-indigo-50/60 border border-indigo-100 px-4 py-3 mb-5">
-        <div className="text-[10px] uppercase tracking-wider text-[#00A99D] font-semibold mb-2">
+      <div className="rounded-lg bg-(--color-surface-selected) border border-(--color-border-subtle) px-4 py-3 mb-5">
+        <div className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] font-semibold mb-2">
           Rule Threshold — {rule.name}
         </div>
         <div className="space-y-1.5">
           {threshold.conditions.map((c, i) => (
             <div key={i} className="flex items-baseline gap-2">
-              <span className="text-[12px] font-mono font-semibold text-indigo-600">{c.value}</span>
+              <span className="text-[12px] font-mono font-semibold text-(--color-primary)">{c.value}</span>
               <span className="text-[11px] text-gray-500">{c.label}</span>
             </div>
           ))}
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px] font-mono font-semibold text-indigo-600">{threshold.window}</span>
+            <span className="text-[12px] font-mono font-semibold text-(--color-primary)">{threshold.window}</span>
             <span className="text-[11px] text-gray-500">Evaluation period</span>
           </div>
         </div>
@@ -168,8 +172,8 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Pr
 
         {/* Threshold divider */}
         <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
-          <div className="absolute inset-0 bg-indigo-200/50" />
-          <div className="absolute text-[9px] uppercase tracking-wider text-[#00A99D]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+          <div className="absolute inset-0 bg-(--color-accent)/30" />
+          <div className="absolute text-[9px] uppercase tracking-wider text-[var(--color-accent)]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
             Threshold
           </div>
         </div>
@@ -182,14 +186,14 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Pr
   if (inTabContainer) return content
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
+    <div className="rounded-md border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
         <Sliders className="w-3.5 h-3.5 text-gray-500" />
         <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
-          ATL / BTL Analysis
+          {copy.thresholdAnalysis.panelTitle}
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />
       </button>

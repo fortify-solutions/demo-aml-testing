@@ -51,7 +51,7 @@ function RecommendationCard({ rec, onHover, onApply }: {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 space-y-3 hover:border-(--color-border-strong) hover:bg-white transition-all"
+      className="rounded-md border border-(--color-border) bg-(--color-surface) p-4 space-y-3 hover:border-(--color-border-strong) hover:bg-white transition-all"
       onMouseEnter={() => onHover(affectedMetrics)}
       onMouseLeave={() => onHover(null)}
     >
@@ -145,7 +145,7 @@ export function RecommendationsPanel({ recommendations, loading, onHoverRecommen
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl bg-black/[0.03] animate-pulse h-[160px]" />
+            <div key={i} className="rounded-md bg-black/[0.03] animate-pulse h-[160px]" />
           ))}
         </div>
       ) : recommendations.length === 0 ? (
@@ -170,7 +170,7 @@ export function RecommendationsPanel({ recommendations, loading, onHoverRecommen
   if (inTabContainer) return content
 
   return (
-    <div className="rounded-xl border border-(--color-border-strong) bg-white overflow-hidden stage-glow-violet">
+    <div className="rounded-md border border-(--color-border-strong) bg-white overflow-hidden stage-glow-violet">
       <button
         onClick={() => setSectionExpanded(!sectionExpanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"

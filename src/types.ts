@@ -6,6 +6,7 @@ export interface Rule {
   parameters: RuleParameter[]
   lookbackWindowHours: number
   batchCadenceHours: number
+  domain?: 'aml' | 'fraud'
 }
 
 export interface RuleParameter {
@@ -93,8 +94,21 @@ export type LabelMode = "formal" | "formal_inferred"
 export type GroundTruth = "sar" | `case_level_${number}`
 export type ExecutionFidelity = "simplified" | "production_replicated"
 export type TaxonomyLevel = "l1" | "l2" | "l3" | "global"
-export type PerformanceView = "absolute" | "marginal"
 export type StratificationDimension = "overall" | "country" | "customer_type" | "product" | "channel"
+
+/** A/B comparison for the rule: portfolio without (A) vs with (B), plus per-metric delta */
+export interface ABMetrics {
+  a: PerformanceMetrics
+  b: PerformanceMetrics
+  delta: PerformanceMetrics
+}
+
+/** Discriminated union describing what "A" represents in the current A/B view. */
+export type ASelection =
+  | { kind: 'portfolio_minus'; level: TaxonomyLevel }    // portfolio at scope minus this rule
+  | { kind: 'prior_version'; version: string }            // a previous version of the same rule
+  | { kind: 'empty' }                                     // no rule at all (B is rule on its own)
+  | { kind: 'specific_rule'; ruleId: string }             // a different specific rule
 
 export interface RuleTestingStatus {
   ruleId: string

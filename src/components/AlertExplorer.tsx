@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle, ArrowUpDown, FileSearch, DollarSign, ArrowUpRight, ArrowDownRight, TrendingUp, UserPlus, Minus } from 'lucide-react'
-import type { AlertRecord, Rule, PerformanceView, TaxonomyLevel, TransactionRecord } from '../types'
+import type { AlertRecord, Rule, TaxonomyLevel, TransactionRecord } from '../types'
+import { useCopy } from '../domain-context'
 
 interface Props {
   alerts: AlertRecord[]
-  performanceView: PerformanceView
   taxonomyLevel: TaxonomyLevel
   rule: Rule
   inTabContainer?: boolean
@@ -24,19 +24,21 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, inTabContainer }: Props) {
+export function AlertExplorer({ alerts, taxonomyLevel, rule, inTabContainer }: Props) {
+  const copy = useCopy()
   const [expanded, setExpanded] = useState(false)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('alertDate')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [bOnly, setBOnly] = useState(false)
 
-  // Filter by view mode
+  // B-only filter: only show alerts that exist in B and not in A (i.e. this rule's unique contribution)
   const viewFiltered = useMemo(() => {
-    if (performanceView === 'absolute') return alerts
+    if (!bOnly) return alerts
     return alerts.filter(a => a.isMarginal && a.marginalAtLevel.includes(taxonomyLevel))
-  }, [alerts, performanceView, taxonomyLevel])
+  }, [alerts, bOnly, taxonomyLevel])
 
   // Filter by search
   const searched = useMemo(() => {
@@ -70,8 +72,13 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  // Reset page when filters change
-  useMemo(() => { setPage(0) }, [performanceView, taxonomyLevel, search])
+  // Reset page when filters change (store-previous-render pattern, lint-clean)
+  const filterKey = `${bOnly}|${taxonomyLevel}|${search}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(0)
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -82,8 +89,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
     }
   }
 
-  const isMarginalView = performanceView === 'marginal'
-  const levelLabel = taxonomyLevel === 'global' ? 'Global' : taxonomyLevel.toUpperCase()
+  const levelLabel = copy.levelLabels[taxonomyLevel]
 
   const content = (
     <div className="px-5 py-5 space-y-3">
@@ -99,10 +105,24 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
             className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-lg border border-(--color-border) bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
           />
         </div>
-        {isMarginalView && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+        <div className="flex rounded bg-gray-50 border border-(--color-border-subtle) p-0.5">
+          <button
+            onClick={() => setBOnly(false)}
+            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${!bOnly ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+          >
+            All B alerts
+          </button>
+          <button
+            onClick={() => setBOnly(true)}
+            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${bOnly ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+          >
+            B-only ({levelLabel})
+          </button>
+        </div>
+        {bOnly && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200">
             <AlertTriangle className="w-3 h-3" />
-            Showing marginal only ({levelLabel})
+            Incremental over A
           </span>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">
@@ -122,7 +142,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
                 ['alertDate', 'Date'],
                 ['transactionCount', 'Txns'],
                 ['totalAmount', 'Amount'],
-                ['sarFiled', 'SAR'],
+                ['sarFiled', copy.confirmedLabelShort],
               ] as [SortKey, string][]).map(([key, label]) => (
                 <th
                   key={key}
@@ -145,6 +165,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
                 key={alert.id}
                 alert={alert}
                 rule={rule}
+                filedLabel={copy.confirmedLabelShort === 'SAR' ? 'Filed' : 'Confirmed'}
                 isExpanded={expandedRow === alert.id}
                 onToggle={() => setExpandedRow(expandedRow === alert.id ? null : alert.id)}
               />
@@ -190,7 +211,7 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
   if (inTabContainer) return content
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
+    <div className="rounded-md border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
@@ -225,7 +246,8 @@ export function AlertExplorer({ alerts, performanceView, taxonomyLevel, rule, in
 // Alert Row (expandable)
 // ---------------------------------------------------------------------------
 
-function AlertRow({ alert, rule, isExpanded, onToggle }: {
+function AlertRow({ alert, rule, isExpanded, onToggle, filedLabel = 'Filed' }: {
+  filedLabel?: string
   alert: AlertRecord
   rule: Rule
   isExpanded: boolean
@@ -248,7 +270,7 @@ function AlertRow({ alert, rule, isExpanded, onToggle }: {
         <td className="px-3 py-2">
           {alert.sarFiled ? (
             <span className="inline-flex items-center gap-1 text-red-600">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Filed
+              <CheckCircle2 className="w-3.5 h-3.5" /> {filedLabel}
             </span>
           ) : (
             <span className="text-gray-500">-</span>
@@ -570,12 +592,12 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
                   className={[
                     'border-t border-gray-100 transition-colors',
                     !txn.passedFilters ? 'opacity-40' : '',
-                    isTriggerRow ? 'bg-[#00A99D]/[0.10]' : '',
-                    isPastTrigger ? 'bg-[#00A99D]/[0.05]' : '',
+                    isTriggerRow ? 'bg-[var(--color-accent)]/[0.10]' : '',
+                    isPastTrigger ? 'bg-[var(--color-accent)]/[0.05]' : '',
                   ].join(' ')}
                 >
                   {/* Alert indicator bar */}
-                  <td className={`w-1 p-0 ${isAlerted ? 'bg-[#00A99D]' : ''}`} />
+                  <td className={`w-1 p-0 ${isAlerted ? 'bg-[var(--color-accent)]' : ''}`} />
                   <td className="px-2.5 py-1.5 text-gray-500">{formatDate(txn.date)}</td>
                   <td className="px-2.5 py-1.5 text-gray-600">{txn.type}</td>
                   <td className="px-2.5 py-1.5 text-right font-mono text-gray-600">
@@ -591,7 +613,7 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
       {/* Legend */}
       <div className="flex items-center gap-4 mt-2">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#00A99D]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-[var(--color-accent)]" />
           <span className="text-[10px] text-gray-500">Alerted (rule triggered)</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -728,7 +750,7 @@ function RuleColumnHeaders({ ruleId }: { ruleId: string }) {
 
 function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn; isTriggerRow: boolean; isPastTrigger: boolean }) {
   const isAtOrPast = isTriggerRow || isPastTrigger
-  const accent = isAtOrPast ? 'text-[#00A99D] font-semibold' : 'text-gray-500'
+  const accent = isAtOrPast ? 'text-[var(--color-accent)] font-semibold' : 'text-gray-500'
 
   switch (txn._rule) {
     case 'velocity':
@@ -791,7 +813,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.cumulIn > 0 ? (
-            <span className={`font-mono text-[11px] ${txn.ratioTriggered ? 'text-[#00A99D] font-semibold' : txn.ratio >= txn.ratioThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
+            <span className={`font-mono text-[11px] ${txn.ratioTriggered ? 'text-[var(--color-accent)] font-semibold' : txn.ratio >= txn.ratioThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               {(txn.ratio * 100).toFixed(1)}%
             </span>
           ) : <span className="text-gray-500 font-mono">-</span>}
@@ -811,7 +833,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.growth !== null ? (
-            <span className={`font-mono text-[11px] ${isAtOrPast ? 'text-[#00A99D] font-semibold' : txn.growth >= txn.growthThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
+            <span className={`font-mono text-[11px] ${isAtOrPast ? 'text-[var(--color-accent)] font-semibold' : txn.growth >= txn.growthThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               &times;{txn.growth.toFixed(2)}
             </span>
           ) : <span className="text-gray-500 font-mono">-</span>}

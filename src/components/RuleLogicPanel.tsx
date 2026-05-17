@@ -60,66 +60,55 @@ export function RuleLogicPanel({ rule }: { rule: Rule }) {
   const thresholdParams = rule.parameters.filter(p => p.type === 'threshold')
   const structuralParams = rule.parameters.filter(p => p.type === 'structural')
 
+  const lookback = rule.lookbackWindowHours >= 24
+    ? `${Math.round(rule.lookbackWindowHours / 24)}d`
+    : `${rule.lookbackWindowHours}h`
+
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 panel-shadow">
-      <div className="flex items-start gap-3">
-        <BookOpen className="w-3.5 h-3.5 text-gray-500 mt-0.5 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
-              Rule Logic
-            </span>
-          </div>
+    <div className="rounded-md border border-(--color-border-subtle) bg-(--color-panel) px-3 py-2 panel-shadow">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {/* Label + icon */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <BookOpen className="w-3.5 h-3.5 text-(--color-text-secondary)" />
+          <span className="text-[10px] uppercase tracking-[0.08em] text-(--color-text-primary) font-semibold">
+            Rule Logic
+          </span>
+        </div>
 
-          {/* Description */}
-          <p className="text-[12px] text-gray-500 mb-2.5">
-            {rule.description}
+        {/* Trigger condition — inline, primary content */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <Zap className="w-3 h-3 text-(--color-accent) shrink-0" />
+          <p className="text-[12px] text-(--color-text-primary) leading-snug truncate" title={getTriggerDescription(rule)}>
+            {getTriggerDescription(rule)}
           </p>
+        </div>
 
-          {/* Trigger condition */}
-          <div className="rounded-lg bg-black/[0.03] border border-(--color-border) px-3 py-2.5 mb-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Zap className="w-3 h-3 text-[#00A99D]" />
-              <span className="text-[10px] uppercase tracking-wider text-[#00A99D] font-semibold">
-                Trigger Condition
+        {/* Params + windows — compact pills on the right */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 shrink-0">
+          {thresholdParams.map(p => (
+            <span key={p.id} className="inline-flex items-baseline gap-1 text-[11px] whitespace-nowrap">
+              <span className="text-(--color-text-secondary)">{p.name.replace(/_/g, ' ')}</span>
+              <span className="font-mono tabular-nums font-medium text-(--color-text-primary)">
+                {formatParamValue(p.currentValue, p.unit)}
               </span>
-            </div>
-            <p className="text-[12px] text-gray-700 leading-relaxed">
-              {getTriggerDescription(rule)}
-            </p>
-          </div>
-
-          {/* Parameters */}
-          <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-            {thresholdParams.map(p => (
-              <div key={p.id} className="flex items-center gap-1.5">
-                <Settings2 className="w-3 h-3 text-gray-400" />
-                <span className="text-[10px] text-gray-500">{p.name.replace(/_/g, ' ')}:</span>
-                <span className="text-[11px] font-mono font-semibold text-gray-700">
-                  {formatParamValue(p.currentValue, p.unit)}
-                </span>
-              </div>
-            ))}
-            {structuralParams.map(p => (
-              <div key={p.id} className="flex items-center gap-1.5">
-                <Settings2 className="w-3 h-3 text-gray-400" />
-                <span className="text-[10px] text-gray-500">{p.name.replace(/_/g, ' ')}:</span>
-                <span className="text-[11px] font-mono font-semibold text-gray-700">{String(p.currentValue)}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-gray-400" />
-              <span className="text-[10px] text-gray-500">lookback:</span>
-              <span className="text-[11px] font-mono font-semibold text-gray-700">
-                {rule.lookbackWindowHours >= 24 ? `${Math.round(rule.lookbackWindowHours / 24)}d` : `${rule.lookbackWindowHours}h`}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-gray-400" />
-              <span className="text-[10px] text-gray-500">cadence:</span>
-              <span className="text-[11px] font-mono font-semibold text-gray-700">{rule.batchCadenceHours}h</span>
-            </div>
-          </div>
+            </span>
+          ))}
+          {structuralParams.map(p => (
+            <span key={p.id} className="inline-flex items-baseline gap-1 text-[11px] whitespace-nowrap">
+              <span className="text-(--color-text-secondary)">{p.name.replace(/_/g, ' ')}</span>
+              <span className="font-mono font-medium text-(--color-text-primary)">{String(p.currentValue)}</span>
+            </span>
+          ))}
+          <span className="inline-flex items-baseline gap-1 text-[11px] whitespace-nowrap">
+            <Clock className="w-3 h-3 text-(--color-text-secondary) self-center" />
+            <span className="font-mono tabular-nums font-medium text-(--color-text-primary)">{lookback}</span>
+            <span className="text-(--color-text-secondary)">lookback</span>
+          </span>
+          <span className="inline-flex items-baseline gap-1 text-[11px] whitespace-nowrap">
+            <Settings2 className="w-3 h-3 text-(--color-text-secondary) self-center" />
+            <span className="font-mono tabular-nums font-medium text-(--color-text-primary)">{rule.batchCadenceHours}h</span>
+            <span className="text-(--color-text-secondary)">cadence</span>
+          </span>
         </div>
       </div>
     </div>

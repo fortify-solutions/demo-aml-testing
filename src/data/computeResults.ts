@@ -1,5 +1,5 @@
-import type { PerformanceMetrics, PerformanceMetricsCI, BacktestResult, PopulationSegment, GroundTruth, UnitOfAnalysis, LabelConfidence, TaxonomyLevel } from '../types'
-import { STRATIFIED_DATA } from './mockData'
+import type { PerformanceMetrics, PerformanceMetricsCI, BacktestResult, PopulationSegment, GroundTruth, UnitOfAnalysis, LabelConfidence, TaxonomyLevel, ABMetrics, ASelection } from '../types'
+import { STRATIFIED_DATA, RULE_VERSIONS, ALL_RULES } from './mockData'
 
 // ---------------------------------------------------------------------------
 // Modifier tables – each toolbar dimension applies a multiplier to the base
@@ -188,6 +188,95 @@ function adjustSegment(
 // ---------------------------------------------------------------------------
 // Public: compute adjusted stratified data for PerformanceDataTable
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Public: derive A / B / Δ from a backtest at a given taxonomy scope
+//   A = portfolio at that scope WITHOUT this rule (baseline)
+//   B = portfolio at that scope WITH this rule added
+//   Δ = B − A (per metric)
+// ---------------------------------------------------------------------------
+
+/** Combine baseline + this-rule metrics into a notional "with rule" portfolio metric set. */
+function combineWithRule(a: PerformanceMetrics, contribution: PerformanceMetrics): PerformanceMetrics {
+  const aVol = a.alertVolume
+  const cVol = contribution.alertVolume
+  const totalVol = aVol + cVol
+
+  // Volume is additive
+  const alertVolume = totalVol
+
+  // Precision and SAR hit rate combine as alert-weighted averages
+  const precision = totalVol > 0
+    ? clamp((a.precision * aVol + contribution.precision * cVol) / totalVol, 0, 1)
+    : a.precision
+  const sarHitRate = totalVol > 0
+    ? clamp((a.sarHitRate * aVol + contribution.sarHitRate * cVol) / totalVol, 0, 1)
+    : a.sarHitRate
+
+  // Recall composes as independent union: 1 − (1−r_a)(1−r_c)
+  const recall = clamp(1 - (1 - a.recall) * (1 - contribution.recall), 0, 1)
+
+  // F1 from the combined precision + recall
+  const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0
+
+  // FPR is the complement of hit rate
+  const falsePositiveRate = clamp(1 - sarHitRate, 0, 1)
+
+  return { precision, recall, f1, alertVolume, sarHitRate, falsePositiveRate }
+}
+
+function subtractMetrics(b: PerformanceMetrics, a: PerformanceMetrics): PerformanceMetrics {
+  return {
+    precision: b.precision - a.precision,
+    recall: b.recall - a.recall,
+    f1: b.f1 - a.f1,
+    alertVolume: b.alertVolume - a.alertVolume,
+    sarHitRate: b.sarHitRate - a.sarHitRate,
+    falsePositiveRate: b.falsePositiveRate - a.falsePositiveRate,
+  }
+}
+
+const EMPTY_METRICS: PerformanceMetrics = {
+  precision: 0, recall: 0, f1: 0, alertVolume: 0, sarHitRate: 0, falsePositiveRate: 0,
+}
+
+export function getAB(result: BacktestResult, selection: ASelection): ABMetrics {
+  if (selection.kind === 'portfolio_minus') {
+    const a = result.marginalBaseline[selection.level]
+    const contribution = result.marginal[selection.level]
+    const b = combineWithRule(a, contribution)
+    if (a.ci || contribution.ci) {
+      b.ci = computeCI(b, 0.4)
+    }
+    return { a, b, delta: subtractMetrics(b, a) }
+  }
+
+  // Non-portfolio modes: A and B are rule-in-isolation snapshots, no peer combination.
+  // B is always this rule's current standalone metrics (= result.absolute).
+  const b: PerformanceMetrics = { ...result.absolute }
+
+  let a: PerformanceMetrics
+  if (selection.kind === 'empty') {
+    a = EMPTY_METRICS
+  } else if (selection.kind === 'prior_version') {
+    const v = RULE_VERSIONS.find(rv => rv.id === selection.version)
+    a = v ? v.metrics : EMPTY_METRICS
+  } else {
+    // specific_rule — fabricate from rule index; if no real backtest, use a scaled variant of `absolute`
+    const idx = ALL_RULES.findIndex(r => r.id === selection.ruleId)
+    const factor = 0.7 + ((idx >= 0 ? idx : 0) % 7) * 0.06  // deterministic 0.7..1.06 spread
+    a = {
+      precision: clamp(result.absolute.precision * factor, 0, 1),
+      recall: clamp(result.absolute.recall * (2 - factor), 0, 1),
+      f1: clamp(result.absolute.f1 * factor * (2 - factor) / Math.max(factor + (2 - factor), 0.001) * 2, 0, 1),
+      alertVolume: Math.round(result.absolute.alertVolume * factor),
+      sarHitRate: clamp(result.absolute.sarHitRate * factor, 0, 1),
+      falsePositiveRate: clamp(1 - result.absolute.sarHitRate * factor, 0, 1),
+    }
+  }
+
+  return { a, b, delta: subtractMetrics(b, a) }
+}
 
 export function computeAdjustedStratifiedData(
   groundTruth: GroundTruth,

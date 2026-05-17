@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Search, ChevronDown, Check, Play, Loader2 } from 'lucide-react'
 import type { Rule } from '../types'
 import { ALL_RULES, RULES_WITH_DATA, RULE_TESTING_STATUS } from '../data/mockData'
+import { useDomain, useCopy } from '../domain-context'
 
 interface ConfigPanelProps {
   selectedRule: Rule | null
@@ -44,15 +45,23 @@ export function ConfigPanel(props: ConfigPanelProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const { mode } = useDomain()
+  const copy = useCopy()
   const search = ruleSearch.toLowerCase()
-  const filteredRules = ALL_RULES.filter(r =>
+  const domainRules = useMemo(
+    () => ALL_RULES.filter(r => (r.domain ?? 'aml') === mode),
+    [mode],
+  )
+  const filteredRules = domainRules.filter(r =>
     r.name.toLowerCase().includes(search) ||
     r.taxonomy.l1.toLowerCase().includes(search) ||
     r.taxonomy.l2.toLowerCase().includes(search)
   )
 
   // Group by L1 → L2 taxonomy
-  const L1_ORDER = ['Structuring', 'Unusual Activity', 'Layering', 'Trade-Based ML', 'Fraud Overlap']
+  const L1_ORDER = mode === 'fraud'
+    ? ['CNP Fraud', 'Account Takeover', 'APP Scam', 'Friendly Fraud']
+    : ['Structuring', 'Unusual Activity', 'Layering', 'Trade-Based ML', 'Fraud Overlap']
   type L2Group = { l1: string; l2: string; rules: Rule[] }
   const l2Map = new Map<string, L2Group>()
   for (const rule of filteredRules) {
@@ -91,12 +100,12 @@ export function ConfigPanel(props: ConfigPanelProps) {
   ).length
 
   return (
-    <div className="h-16 flex items-center gap-4 px-6 bg-[#111827] shrink-0 sticky top-0 z-50">
+    <div className="h-16 flex items-center gap-4 px-6 bg-[#183936] shrink-0 sticky top-0 z-50">
       {/* Rule Selection */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setRuleDropdownOpen(!ruleDropdownOpen)}
-          className="flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-[13px] text-white hover:bg-white/15 transition-all cursor-pointer min-w-[240px]"
+          className="flex items-center gap-2 rounded-md bg-white/10 border border-white/20 px-3 py-2 text-[13px] text-white hover:bg-white/15 transition-all cursor-pointer min-w-[240px]"
         >
           {selectedRule && <StatusDot ruleId={selectedRule.id} />}
           <span className="truncate flex-1 text-left">
@@ -111,7 +120,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
         </button>
 
         {ruleDropdownOpen && (
-          <div className="absolute z-50 top-full left-0 mt-1 rounded-xl bg-white border border-(--color-border) shadow-2xl overflow-hidden min-w-[360px]">
+          <div className="absolute z-50 top-full left-0 mt-1 rounded-md bg-white border border-(--color-border) shadow-2xl overflow-hidden min-w-[360px]">
             <div className="p-2 border-b border-(--color-border)">
               <div className="flex items-center gap-2 rounded-lg bg-black/[0.04] px-2.5 py-1.5">
                 <Search className="w-3.5 h-3.5 text-gray-400" />
@@ -152,7 +161,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
                             </span>
                           </div>
                           {selectedRule?.id === rule.id && (
-                            <Check className="w-3 h-3 text-[#00A99D] shrink-0" />
+                            <Check className="w-3 h-3 text-[var(--color-accent)] shrink-0" />
                           )}
                         </button>
                       )
@@ -168,9 +177,13 @@ export function ConfigPanel(props: ConfigPanelProps) {
       {/* Taxonomy tags for selected rule — hidden below 1200px to prevent overflow */}
       {selectedRule && (
         <div className="hidden xl:flex gap-1 shrink-0">
-          {[selectedRule.taxonomy.l1, selectedRule.taxonomy.l2, selectedRule.taxonomy.l3].map((tag, i) => (
-            <span key={i} className="text-[11px] font-semibold text-white bg-white/15 rounded-full px-3 py-1 whitespace-nowrap">
-              <span className="text-white/50 font-medium text-[9px] mr-1">L{i + 1}</span>{tag}
+          {([
+            { key: 'l1' as const, tag: selectedRule.taxonomy.l1, label: copy.levelLabels.l1 },
+            { key: 'l2' as const, tag: selectedRule.taxonomy.l2, label: copy.levelLabels.l2 },
+            { key: 'l3' as const, tag: selectedRule.taxonomy.l3, label: copy.levelLabels.l3 },
+          ]).map(({ key, tag, label }) => (
+            <span key={key} className="text-[11px] font-semibold text-white bg-white/15 rounded-full px-3 py-1 whitespace-nowrap">
+              <span className="text-white/50 font-medium text-[9px] mr-1">{label}</span>{tag}
             </span>
           ))}
         </div>
@@ -179,7 +192,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
       <div className="flex-1" />
 
       {/* Date Range */}
-      <div className="flex items-center gap-3 shrink-0 bg-white/10 border border-white/20 rounded-xl px-4 py-2">
+      <div className="flex items-center gap-3 shrink-0 bg-white/10 border border-white/20 rounded-md px-4 py-2">
         <span className="text-[10px] uppercase tracking-widest text-white/50 font-semibold">Period</span>
         <div className="w-px h-4 bg-white/20" />
         <input
@@ -201,9 +214,9 @@ export function ConfigPanel(props: ConfigPanelProps) {
       <button
         onClick={onRunBacktest}
         disabled={!canRun}
-        className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all cursor-pointer shrink-0 ${
+        className={`flex items-center gap-2 rounded-md px-5 py-2.5 text-[13px] font-semibold transition-all cursor-pointer shrink-0 ${
           canRun
-            ? 'bg-[#00A99D] text-white hover:bg-[#009488] shadow-lg shadow-[#00A99D]/30'
+            ? 'bg-[var(--color-accent)] text-white hover:bg-(--color-accent-dark) shadow-lg shadow-[var(--color-accent)]/30'
             : 'bg-white/10 text-white/25 cursor-not-allowed'
         }`}
       >

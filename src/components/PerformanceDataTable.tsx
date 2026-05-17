@@ -2,20 +2,23 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { StratificationDimension, NumericMetricKey, PerformanceMetrics } from '../types'
 import { STRATIFICATION_DIMENSIONS } from '../data/mockData'
+import { useCopy } from '../domain-context'
 
 interface Props {
   data: Record<string, { label: string; count: number; metrics: PerformanceMetrics }[]>
   inTabContainer?: boolean
 }
 
-const METRIC_COLS = [
-  { key: 'precision', label: 'Precision', format: (v: number) => `${(v * 100).toFixed(1)}%` },
-  { key: 'recall', label: 'Recall', format: (v: number) => `${(v * 100).toFixed(1)}%` },
-  { key: 'f1', label: 'F1', format: (v: number) => `${(v * 100).toFixed(1)}%` },
-  { key: 'alertVolume', label: 'Alerts', format: (v: number) => v.toLocaleString() },
-  { key: 'sarHitRate', label: 'SAR Rate', format: (v: number) => `${(v * 100).toFixed(1)}%` },
-  { key: 'falsePositiveRate', label: 'FP Rate', format: (v: number) => `${(v * 100).toFixed(1)}%` },
-] as const
+function buildMetricCols(hitRateShort: string) {
+  return [
+    { key: 'precision', label: 'Precision', format: (v: number) => `${(v * 100).toFixed(1)}%` },
+    { key: 'recall', label: 'Recall', format: (v: number) => `${(v * 100).toFixed(1)}%` },
+    { key: 'f1', label: 'F1', format: (v: number) => `${(v * 100).toFixed(1)}%` },
+    { key: 'alertVolume', label: 'Alerts', format: (v: number) => v.toLocaleString() },
+    { key: 'sarHitRate', label: hitRateShort, format: (v: number) => `${(v * 100).toFixed(1)}%` },
+    { key: 'falsePositiveRate', label: 'FP Rate', format: (v: number) => `${(v * 100).toFixed(1)}%` },
+  ] as const
+}
 
 function DimensionSelector({ dimension, onChange }: { dimension: StratificationDimension; onChange: (d: StratificationDimension) => void }) {
   return (
@@ -43,6 +46,8 @@ function DimensionSelector({ dimension, onChange }: { dimension: StratificationD
 function ChartView({ stratifiedData }: { stratifiedData: Record<string, { label: string; count: number; metrics: PerformanceMetrics }[]> }) {
   const [dimension, setDimension] = useState<StratificationDimension>('overall')
   const data = stratifiedData[dimension] ?? stratifiedData.overall
+  const copy = useCopy()
+  const METRIC_COLS = buildMetricCols(copy.hitRateShort)
 
   return (
     <div className="space-y-4">
@@ -54,7 +59,7 @@ function ChartView({ stratifiedData }: { stratifiedData: Record<string, { label:
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow"
+          className="rounded-md border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow"
         >
           <table className="w-full text-[11px]">
             <thead>
@@ -99,6 +104,8 @@ function ChartView({ stratifiedData }: { stratifiedData: Record<string, { label:
 function TableContent({ stratifiedData }: { stratifiedData: Record<string, { label: string; count: number; metrics: PerformanceMetrics }[]> }) {
   const [dimension, setDimension] = useState<StratificationDimension>('overall')
   const data = stratifiedData[dimension] ?? stratifiedData.overall
+  const copy = useCopy()
+  const METRIC_COLS = buildMetricCols(copy.hitRateShort)
 
   return (
     <>
@@ -157,7 +164,7 @@ export function PerformanceDataTable({ data: stratifiedData, inTabContainer }: P
   }
 
   return (
-    <div className="rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
+    <div className="rounded-md border border-(--color-border) bg-(--color-surface) overflow-hidden panel-shadow">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
