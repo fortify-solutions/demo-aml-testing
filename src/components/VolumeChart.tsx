@@ -23,7 +23,7 @@ interface Props {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
   if (!active || !payload) return null
   return (
-    <div className="bg-white border border-(--color-border) rounded-lg px-3 py-2 shadow-xl">
+    <div className="bg-white border border-(--color-border) rounded-lg px-3 py-2 elevated-shadow">
       <div className="text-[10px] text-gray-500 mb-1 font-mono">{label}</div>
       {payload.map((entry, i) => (
         <div key={i} className="flex items-center gap-2 text-[11px]">
@@ -66,7 +66,7 @@ export function VolumeChart({ data, selectedLevel, levelLabel, labelMode }: Prop
     <div className="rounded-md border border-(--color-border-subtle) bg-(--color-panel) p-4 panel-shadow">
       <div className="flex items-center gap-2 mb-1">
         <BarChart2 className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[11px] uppercase tracking-wider text-gray-600 font-semibold">
+        <span className="text-[11px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
           Alert Volume — A vs B
         </span>
         <span className="text-[9px] font-mono text-gray-500 bg-gray-50 border border-(--color-border-subtle) rounded px-1.5 py-0.5">

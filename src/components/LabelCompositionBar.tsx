@@ -54,7 +54,7 @@ function LabelSparkline({ data, total }: { data: VolumeEntry[]; total: number })
                 background: 'white',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               }}
-              labelFormatter={(label: unknown) => new Date(label as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              labelFormatter={(label: unknown) => new Date(label as string).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               formatter={(value: unknown) => [value as number, 'SARs']}
             />
           </AreaChart>
@@ -81,7 +81,7 @@ export function LabelCompositionBar({ formal, inferred, total, labelMode, volume
     <div className="rounded-md border border-(--color-border) bg-(--color-surface) p-5 panel-shadow">
       <div className="flex items-center gap-2 mb-3">
         <Tag className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
           Label Composition
         </span>
       </div>

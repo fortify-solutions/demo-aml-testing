@@ -17,7 +17,7 @@ interface Props {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
   if (!active || !payload) return null
   return (
-    <div className="bg-white border border-(--color-border) rounded-lg px-3 py-2 shadow-xl">
+    <div className="bg-white border border-(--color-border) rounded-lg px-3 py-2 elevated-shadow">
       <div className="text-[10px] text-gray-500 mb-1 font-mono">{label}</div>
       {payload.map((entry, i) => (
         <div key={i} className="flex items-center gap-2 text-[11px]">
@@ -68,7 +68,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
           {isATL ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
+          <div className="text-[10px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
             {isATL ? ta.aboveName : ta.belowName}
           </div>
           <div className="text-[9px] text-gray-500">
@@ -88,7 +88,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
           ? 'bg-(--color-card) border border-(--color-border)'
           : 'bg-(--color-card) border border-(--color-border-strong)'
       }`}>
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{copy.hitRateShort}</div>
+        <div className="text-[10px] uppercase tracking-[0.08em] text-gray-500 mb-1">{copy.hitRateShort}</div>
         <div className="text-[22px] font-mono text-gray-900 leading-none">
           {(segment.sarRate * 100).toFixed(1)}%
         </div>
@@ -100,7 +100,7 @@ function SegmentColumn({ segment, side, labelMode }: { segment: PopulationSegmen
       {/* Inferred SAR Rate */}
       {showInferred && (
         <div className="rounded-md bg-(--color-card) border border-(--color-border) p-3">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Inferred {copy.hitRateShort}</div>
+          <div className="text-[10px] uppercase tracking-[0.08em] text-gray-500 mb-1">Inferred {copy.hitRateShort}</div>
           <div className="text-[18px] font-mono text-gray-700 leading-none">
             {(segment.inferredSarRate * 100).toFixed(1)}%
           </div>
@@ -150,7 +150,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Pr
     <div className="px-5 py-5">
       {/* Threshold definition banner */}
       <div className="rounded-lg bg-(--color-surface-selected) border border-(--color-border-subtle) px-4 py-3 mb-5">
-        <div className="text-[10px] uppercase tracking-wider text-[var(--color-accent)] font-semibold mb-2">
+        <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--color-accent)] font-semibold mb-2">
           Rule Threshold — {rule.name}
         </div>
         <div className="space-y-1.5">
@@ -173,7 +173,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Pr
         {/* Threshold divider */}
         <div className="relative mx-5 flex items-center justify-center" style={{ width: '1px' }}>
           <div className="absolute inset-0 bg-(--color-accent)/30" />
-          <div className="absolute text-[9px] uppercase tracking-wider text-[var(--color-accent)]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+          <div className="absolute text-[9px] uppercase tracking-[0.08em] text-[var(--color-accent)]/70 whitespace-nowrap bg-(--color-surface) px-1 py-2 font-semibold" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
             Threshold
           </div>
         </div>
@@ -192,7 +192,7 @@ export function ATLBTLAnalysis({ atl, btl, labelMode, rule, inTabContainer }: Pr
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
         <Sliders className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
           {copy.thresholdAnalysis.panelTitle}
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ml-auto ${expanded ? 'rotate-180' : ''}`} />

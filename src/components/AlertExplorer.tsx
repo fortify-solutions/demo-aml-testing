@@ -17,11 +17,11 @@ type SortDir = 'asc' | 'desc'
 const PAGE_SIZE = 20
 
 function formatCurrency(v: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'USD', maximumFractionDigits: 0, currencyDisplay: 'narrowSymbol' }).format(v)
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function AlertExplorer({ alerts, taxonomyLevel, rule, inTabContainer }: Props) {
@@ -108,19 +108,19 @@ export function AlertExplorer({ alerts, taxonomyLevel, rule, inTabContainer }: P
         <div className="flex rounded bg-gray-50 border border-(--color-border-subtle) p-0.5">
           <button
             onClick={() => setBOnly(false)}
-            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${!bOnly ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${!bOnly ? 'bg-white text-gray-900 border border-(--color-border-subtle)' : 'text-gray-500'}`}
           >
             All B alerts
           </button>
           <button
             onClick={() => setBOnly(true)}
-            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${bOnly ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`rounded-sm px-2.5 py-1 text-[10px] font-semibold cursor-pointer ${bOnly ? 'bg-white text-gray-900 border border-(--color-border-subtle)' : 'text-gray-500'}`}
           >
             B-only ({levelLabel})
           </button>
         </div>
         {bOnly && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded bg-[var(--status-yellow-bg)] text-[var(--status-yellow-fg)] border border-[var(--status-yellow-border)]">
             <AlertTriangle className="w-3 h-3" />
             Incremental over A
           </span>
@@ -217,7 +217,7 @@ export function AlertExplorer({ alerts, taxonomyLevel, rule, inTabContainer }: P
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
         <FileSearch className="w-3.5 h-3.5 text-gray-500" />
-        <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
           Alert Explorer
         </span>
         <span className="text-[10px] text-gray-500 ml-1">
@@ -269,11 +269,11 @@ function AlertRow({ alert, rule, isExpanded, onToggle, filedLabel = 'Filed' }: {
         <td className="px-3 py-2 text-gray-600">{formatCurrency(alert.totalAmount)}</td>
         <td className="px-3 py-2">
           {alert.sarFiled ? (
-            <span className="inline-flex items-center gap-1 text-red-600">
+            <span className="inline-flex items-center gap-1 text-[var(--status-red-fg)]">
               <CheckCircle2 className="w-3.5 h-3.5" /> {filedLabel}
             </span>
           ) : (
-            <span className="text-gray-500">-</span>
+            <span className="text-gray-500">—</span>
           )}
         </td>
       </tr>
@@ -553,7 +553,7 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
   return (
     <div>
       <div className="flex items-baseline gap-2 mb-2">
-        <h4 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">
+        <h4 className="text-[11px] font-semibold text-gray-700 uppercase tracking-[0.06em]">
           Transactions in Aggregation Window
         </h4>
         <span className="text-[10px] text-gray-500">
@@ -601,7 +601,7 @@ function TransactionsPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
                   <td className="px-2.5 py-1.5 text-gray-500">{formatDate(txn.date)}</td>
                   <td className="px-2.5 py-1.5 text-gray-600">{txn.type}</td>
                   <td className="px-2.5 py-1.5 text-right font-mono text-gray-600">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency, maximumFractionDigits: 0 }).format(txn.amount)}
+                    {new Intl.NumberFormat('en-GB', { style: 'currency', currency: txn.currency, maximumFractionDigits: 0, currencyDisplay: 'narrowSymbol' }).format(txn.amount)}
                   </td>
                   <RuleStateCells txn={txn} isTriggerRow={isTriggerRow} isPastTrigger={isPastTrigger} />
                 </tr>
@@ -766,7 +766,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
             <span className={`font-mono text-[11px] ${accent}`}>
               {txn.runningCount}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.velocityThreshold}</span>
             </span>
-          ) : <span className="text-gray-500 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">—</span>}
         </td>
       </>)
 
@@ -779,7 +779,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
               {(txn.nearPct * 100).toFixed(0)}%
             </span>
           ) : txn.amount >= txn.reportingThreshold ? (
-            <span className="text-red-400 font-mono text-[10px]">&ge;100%</span>
+            <span className="text-[var(--color-danger-fg)] font-mono text-[10px]">&ge;100%</span>
           ) : (
             <span className="text-gray-500 font-mono text-[10px]">{(txn.nearPct * 100).toFixed(0)}%</span>
           )}
@@ -789,10 +789,10 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
             <span className={`font-mono text-[11px] ${accent}`}>
               {txn.nearCount}<span className="text-gray-500 mx-0.5">/</span><span className="text-gray-500">{txn.countTrigger}</span>
             </span>
-          ) : <span className="text-gray-500 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">—</span>}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '-'}
+          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '—'}
         </td>
       </>)
 
@@ -802,21 +802,21 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
           {txn.direction === 'inflow' ? (
             <ArrowDownRight className="w-3.5 h-3.5 text-emerald-500 inline" />
           ) : (
-            <ArrowUpRight className="w-3.5 h-3.5 text-red-400 inline" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-[var(--color-danger-fg)] inline" />
           )}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.cumulIn > 0 ? formatCurrency(txn.cumulIn) : '-'}
+          {txn.cumulIn > 0 ? formatCurrency(txn.cumulIn) : '—'}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.cumulOut > 0 ? formatCurrency(txn.cumulOut) : '-'}
+          {txn.cumulOut > 0 ? formatCurrency(txn.cumulOut) : '—'}
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.cumulIn > 0 ? (
             <span className={`font-mono text-[11px] ${txn.ratioTriggered ? 'text-[var(--color-accent)] font-semibold' : txn.ratio >= txn.ratioThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               {(txn.ratio * 100).toFixed(1)}%
             </span>
-          ) : <span className="text-gray-500 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">—</span>}
         </td>
       </>)
 
@@ -826,17 +826,17 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
           {txn.qualifies ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 inline" /> : <XCircle className="w-3.5 h-3.5 text-gray-500 inline" />}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.rollingAvg !== null ? formatCurrency(txn.rollingAvg) : '-'}
+          {txn.rollingAvg !== null ? formatCurrency(txn.rollingAvg) : '—'}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.priorAvg !== null ? formatCurrency(txn.priorAvg) : '-'}
+          {txn.priorAvg !== null ? formatCurrency(txn.priorAvg) : '—'}
         </td>
         <td className="px-2.5 py-1.5 text-right">
           {txn.growth !== null ? (
             <span className={`font-mono text-[11px] ${isAtOrPast ? 'text-[var(--color-accent)] font-semibold' : txn.growth >= txn.growthThreshold ? 'text-amber-500' : 'text-gray-500'}`}>
               &times;{txn.growth.toFixed(2)}
             </span>
-          ) : <span className="text-gray-500 font-mono">-</span>}
+          ) : <span className="text-gray-500 font-mono">—</span>}
         </td>
       </>)
 
@@ -861,7 +861,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
           {txn.exceedsReactivation ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 inline" /> : <Minus className="w-3.5 h-3.5 text-gray-300 inline" />}
         </td>
         <td className="px-2.5 py-1.5 text-right font-mono text-gray-500">
-          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '-'}
+          {txn.passedFilters ? formatCurrency(txn.cumulativeAmount) : '—'}
         </td>
       </>)
 
@@ -886,7 +886,7 @@ function RuleStateCells({ txn, isTriggerRow, isPastTrigger }: { txn: EnrichedTxn
 function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) {
   return (
     <div>
-      <h4 className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide mb-3">
+      <h4 className="text-[11px] font-semibold text-gray-700 uppercase tracking-[0.06em] mb-3">
         Why This Alert
       </h4>
 
@@ -902,7 +902,7 @@ function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-[11px] font-medium text-gray-700">{tc.parameterName}</span>
                 {tc.exceeded && (
-                  <span className="text-[9px] font-semibold uppercase text-red-500">Exceeded</span>
+                  <span className="text-[9px] font-semibold uppercase text-[var(--status-red-fg)]">Exceeded</span>
                 )}
               </div>
               <div className="flex items-center gap-3 mb-1.5">
@@ -915,7 +915,7 @@ function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
                     />
                     {/* Actual value bar */}
                     <div
-                      className={`h-full rounded-full transition-all ${tc.exceeded ? 'bg-red-400' : 'bg-emerald-400'}`}
+                      className={`h-full rounded-full transition-all ${tc.exceeded ? 'bg-(--color-danger)' : 'bg-(--color-success)'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -925,7 +925,7 @@ function WhyThisAlertPanel({ alert, rule }: { alert: AlertRecord; rule: Rule }) 
                 <span className="text-gray-500">
                   Threshold: <span className="font-semibold text-gray-600">{tc.threshold}{tc.unit ? ` ${tc.unit}` : ''}</span>
                 </span>
-                <span className={tc.exceeded ? 'text-red-500 font-semibold' : 'text-gray-500'}>
+                <span className={tc.exceeded ? 'text-[var(--status-red-fg)] font-semibold' : 'text-gray-500'}>
                   Actual: {tc.actualValue}{tc.unit ? ` ${tc.unit}` : ''}
                 </span>
               </div>

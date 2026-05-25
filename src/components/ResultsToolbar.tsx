@@ -39,7 +39,7 @@ function GroundTruthSelector({ value, onChange }: { value: GroundTruth; onChange
         <ChevronDown className="w-3.5 h-3.5 text-(--color-text-secondary)" />
       </button>
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 rounded-lg bg-white border border-(--color-border) shadow-xl overflow-hidden min-w-[160px]">
+        <div className="absolute z-50 top-full left-0 mt-1 rounded-md bg-white border border-(--color-border) elevated-shadow overflow-hidden min-w-[160px]">
           {options.map(opt => (
             <button
               key={opt.value}

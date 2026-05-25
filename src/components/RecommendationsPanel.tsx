@@ -21,9 +21,9 @@ const COMPARE_METRICS: { key: NumericMetricKey; label: string; format: (v: numbe
 
 function ConfidenceBadge({ confidence }: { confidence: Recommendation['confidence'] }) {
   const colors = {
-    high: 'text-[#16a34a] bg-[#16a34a]/10',
-    medium: 'text-amber-600 bg-amber-600/10',
-    low: 'text-gray-500 bg-black/[0.06]',
+    high: 'text-[var(--status-green-fg)] bg-[var(--status-green-bg)] border border-[var(--status-green-border)]/30',
+    medium: 'text-[var(--status-yellow-fg)] bg-[var(--status-yellow-bg)] border border-[var(--status-yellow-border)]',
+    low: 'text-[var(--status-gray-fg)] bg-[var(--status-gray-bg)] border border-[var(--status-gray-border)]',
   }
   return (
     <span className={`text-[10px] font-mono uppercase rounded-full px-2 py-0.5 ${colors[confidence]}`}>
@@ -100,7 +100,7 @@ function RecommendationCard({ rec, onHover, onApply }: {
 
       {/* Before / After comparison */}
       <div className="rounded-lg bg-black/[0.02] border border-(--color-border) overflow-hidden">
-        <div className="grid grid-cols-[1fr_80px_80px] gap-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold px-3 py-1.5 border-b border-(--color-border)">
+        <div className="grid grid-cols-[1fr_80px_80px] gap-0 text-[10px] uppercase tracking-[0.08em] text-gray-500 font-semibold px-3 py-1.5 border-b border-(--color-border)">
           <div>Metric</div>
           <div className="text-right">Current</div>
           <div className="text-right">Projected</div>
@@ -116,7 +116,7 @@ function RecommendationCard({ rec, onHover, onApply }: {
               <div className="text-[11px] text-gray-500">{mc.label}</div>
               <div className="text-[11px] font-mono text-gray-500 text-right">{mc.format(current)}</div>
               <div className={`text-[11px] font-mono text-right ${
-                isChanged ? (isImproved ? 'text-[#16a34a]' : 'text-[#dc2626]') : 'text-gray-500'
+                isChanged ? (isImproved ? 'text-[var(--color-success)]' : 'text-[var(--color-danger-fg)]') : 'text-gray-500'
               }`}>
                 {mc.format(projected)}
               </div>
@@ -176,7 +176,7 @@ export function RecommendationsPanel({ recommendations, loading, onHoverRecommen
         className="w-full flex items-center gap-2 px-5 py-3 hover:bg-black/[0.02] transition-colors cursor-pointer"
       >
         <Sparkles className="w-3.5 h-3.5 text-violet-500/70" />
-        <span className="text-[10px] uppercase tracking-wider text-gray-600 font-semibold">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-gray-600 font-semibold">
           Recommendations
         </span>
         {loading && <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />}

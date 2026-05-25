@@ -37,7 +37,7 @@ function formatDelta(val: number, key: NumericMetricKey, lowerIsBetter?: boolean
   const isGood = lowerIsBetter ? pp < 0 : pp > 0
   return {
     text: `${sign}${pp.toFixed(1)}pp`,
-    color: isGood ? 'text-[#16a34a]' : 'text-[#dc2626]',
+    color: isGood ? 'text-[var(--color-success)]' : 'text-[var(--color-danger-fg)]',
   }
 }
 

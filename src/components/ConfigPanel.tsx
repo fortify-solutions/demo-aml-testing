@@ -19,8 +19,8 @@ interface ConfigPanelProps {
 function StatusDot({ ruleId }: { ruleId: string }) {
   const status = RULE_TESTING_STATUS[ruleId]
   if (!status) return null
-  const color = status.status === 'needs_testing' ? 'bg-amber-400' :
-    status.status === 'stale' ? 'bg-orange-400' : 'bg-emerald-400'
+  const color = status.status === 'needs_testing' ? 'bg-(--color-warning)' :
+    status.status === 'stale' ? 'bg-(--color-danger)' : 'bg-(--color-success)'
   return <span className={`w-1.5 h-1.5 rounded-full ${color} shrink-0`} />
 }
 
@@ -100,7 +100,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
   ).length
 
   return (
-    <div className="h-16 flex items-center gap-4 px-6 bg-[#183936] shrink-0 sticky top-0 z-50">
+    <div className="h-16 flex items-center gap-4 px-6 bg-(--color-primary) shrink-0 sticky top-0 z-50">
       {/* Rule Selection */}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -120,7 +120,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
         </button>
 
         {ruleDropdownOpen && (
-          <div className="absolute z-50 top-full left-0 mt-1 rounded-md bg-white border border-(--color-border) shadow-2xl overflow-hidden min-w-[360px]">
+          <div className="absolute z-50 top-full left-0 mt-1 rounded-md bg-white border border-(--color-border) elevated-shadow overflow-hidden min-w-[360px]">
             <div className="p-2 border-b border-(--color-border)">
               <div className="flex items-center gap-2 rounded-lg bg-black/[0.04] px-2.5 py-1.5">
                 <Search className="w-3.5 h-3.5 text-gray-400" />
@@ -139,7 +139,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
                 return (
                   <div key={`${l1}::${l2}`}>
                     {showL1 && (
-                      <div className="px-3 pt-3 pb-0.5 text-[10px] uppercase tracking-wider text-gray-600 font-bold border-t border-(--color-border) first:border-t-0">
+                      <div className="px-3 pt-3 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-gray-600 font-bold border-t border-(--color-border) first:border-t-0">
                         {l1}
                       </div>
                     )}
@@ -154,7 +154,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
                           onClick={() => { onSelectRule(rule); setRuleDropdownOpen(false); setRuleSearch('') }}
                           className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] transition-colors cursor-pointer"
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${hasData ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${hasData ? 'bg-(--color-success)' : 'bg-(--color-warning)'}`} />
                           <div className="flex-1 min-w-0">
                             <span className="text-[12px] text-gray-700 truncate block">
                               {rule.name}
@@ -193,7 +193,7 @@ export function ConfigPanel(props: ConfigPanelProps) {
 
       {/* Date Range */}
       <div className="flex items-center gap-3 shrink-0 bg-white/10 border border-white/20 rounded-md px-4 py-2">
-        <span className="text-[10px] uppercase tracking-widest text-white/50 font-semibold">Period</span>
+        <span className="text-[10px] uppercase tracking-[0.08em] text-white/50 font-semibold">Period</span>
         <div className="w-px h-4 bg-white/20" />
         <input
           type="date"
@@ -214,9 +214,9 @@ export function ConfigPanel(props: ConfigPanelProps) {
       <button
         onClick={onRunBacktest}
         disabled={!canRun}
-        className={`flex items-center gap-2 rounded-md px-5 py-2.5 text-[13px] font-semibold transition-all cursor-pointer shrink-0 ${
+        className={`flex items-center gap-2 rounded-md px-5 py-2 text-[13px] font-medium transition-colors cursor-pointer shrink-0 ${
           canRun
-            ? 'bg-[var(--color-accent)] text-white hover:bg-(--color-accent-dark) shadow-lg shadow-[var(--color-accent)]/30'
+            ? 'bg-(--color-accent) text-white hover:bg-(--color-accent-dark)'
             : 'bg-white/10 text-white/25 cursor-not-allowed'
         }`}
       >
